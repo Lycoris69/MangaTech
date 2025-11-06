@@ -27,44 +27,91 @@ Voir [USER_STORIES.md](./USER_STORIES.md) pour la liste complète.
 
 ```
 MangaTech/
-├── backend/          # API Node.js/Express
+├── backend/               # API Node.js/Express
 │   ├── src/
-│   │   ├── config/       # Configuration (database, etc.)
-│   │   ├── controllers/  # Logique métier
-│   │   ├── database/     # Migrations
-│   │   ├── middleware/   # Auth, validation
-│   │   ├── routes/       # Endpoints API
-│   │   ├── services/     # Services (notifications, etc.)
-│   │   └── server.js     # Point d'entrée
+│   │   ├── config/           # Configuration (database, etc.)
+│   │   ├── controllers/      # Logique métier
+│   │   ├── database/
+│   │   │   ├── migrations/   # Migrations SQL
+│   │   │   └── seeds/        # Données de test
+│   │   ├── middleware/       # Auth, validation
+│   │   ├── models/           # Modèles de données
+│   │   ├── routes/           # Endpoints API
+│   │   ├── services/         # Services (notifications, etc.)
+│   │   ├── utils/            # Utilitaires
+│   │   └── server.js         # Point d'entrée
 │   ├── package.json
-│   └── .env
+│   └── .env.example
 │
-├── mobile/           # App React Native/Expo
+├── mobile/                # App React Native/Expo
 │   ├── src/
-│   │   ├── contexts/     # Context API (Auth)
-│   │   ├── navigation/   # React Navigation
-│   │   ├── screens/      # Écrans de l'app
-│   │   └── services/     # API client
+│   │   ├── components/       # Composants réutilisables
+│   │   ├── contexts/         # Context API (Auth)
+│   │   ├── navigation/       # React Navigation
+│   │   ├── screens/          # Écrans de l'app
+│   │   ├── services/         # API client
+│   │   ├── utils/            # Utilitaires
+│   │   └── config/           # Configuration
+│   ├── assets/
 │   ├── App.js
-│   └── package.json
+│   ├── package.json
+│   └── .env.example
 │
-├── docker-compose.yml    # PostgreSQL en container
-├── ARCHITECTURE.md       # Documentation détaillée
-└── USER_STORIES.md       # User stories et roadmap
+├── shared/                # Code partagé backend/mobile
+│   ├── types.js              # Types et enums
+│   └── constants.js          # Constantes API
+│
+├── docs/                  # Documentation complète
+│   ├── GETTING_STARTED.md    # Guide de démarrage
+│   ├── API.md                # Documentation API
+│   └── DATABASE.md           # Schéma de la BDD
+│
+├── scripts/               # Scripts utilitaires
+│   ├── setup.sh              # Setup automatique
+│   └── seed-db.js            # Seed de la DB
+│
+├── docker-compose.yml     # PostgreSQL container
+├── Makefile               # Commandes automatisées
+├── ARCHITECTURE.md        # Architecture détaillée
+└── USER_STORIES.md        # User stories et roadmap
 ```
 
-Voir [ARCHITECTURE.md](./ARCHITECTURE.md) pour plus de détails.
+📖 **Documentation détaillée** :
+- **[docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)** - Guide de démarrage complet
+- **[docs/API.md](./docs/API.md)** - Documentation complète de l'API
+- **[docs/DATABASE.md](./docs/DATABASE.md)** - Schéma et migrations de la base de données
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Architecture technique du projet
 
 ## 🚀 Installation
 
-### Prérequis
+### Installation automatique (recommandé)
+
+```bash
+# 1. Cloner le projet
+git clone https://github.com/Lycoris69/MangaTech.git
+cd MangaTech
+
+# 2. Setup automatique
+./scripts/setup.sh
+
+# 3. Démarrer le projet
+make start
+```
+
+C'est tout ! Le script s'occupe de tout : installation des dépendances, configuration de la DB, et création des fichiers `.env`.
+
+### Installation manuelle
+
+<details>
+<summary>Cliquez pour voir les étapes détaillées</summary>
+
+#### Prérequis
 
 - **Node.js** 18+ et npm
 - **Docker** et Docker Compose
-- **Expo CLI** : `npm install -g expo-cli`
-- Un smartphone avec **Expo Go** (iOS/Android) OU un émulateur
+- **Expo Go** (app mobile sur iOS/Android)
 
-### 1. Cloner le projet
+#### 1. Cloner le projet
 
 ```bash
 git clone https://github.com/Lycoris69/MangaTech.git
@@ -214,6 +261,22 @@ Authorization: Bearer <token>
 
 ## 🛠️ Commandes utiles
 
+### Makefile (Recommandé)
+
+```bash
+make help          # Affiche toutes les commandes disponibles
+make install       # Installe toutes les dépendances
+make start         # Démarre le projet complet (DB + Backend + Mobile)
+make stop          # Arrête tous les services
+make status        # Affiche le statut des services
+make logs          # Affiche les logs
+make db-migrate    # Exécute les migrations
+make db-reset      # Réinitialise la DB (⚠️ supprime les données)
+make clean         # Nettoie tout (node_modules, logs)
+make backend       # Démarre uniquement le backend
+make mobile        # Démarre uniquement l'app mobile
+```
+
 ### Backend
 
 ```bash
@@ -225,6 +288,9 @@ npm start
 
 # Migrations
 npm run migrate
+
+# Seed (données de test)
+npm run seed
 
 # Accéder à PostgreSQL
 docker exec -it mangatech-postgres psql -U mangatech_user -d mangatech
@@ -364,6 +430,8 @@ Sur Expo, l'app mobile doit utiliser l'IP locale de votre machine, pas `localhos
    const API_URL = 'http://192.168.X.X:3000/api';
    ```
 
+</details>
+
 ## 📝 Utilisation personnelle
 
 Cette application est développée dans un cadre **strictement personnel**, sans intention commerciale. Elle vise à améliorer l'expérience de lecture de mangas en automatisant les tâches répétitives.
@@ -408,8 +476,10 @@ Cette application est développée dans un cadre **strictement personnel**, sans
 
 ## 📚 Documentation
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Architecture détaillée du projet
-- [USER_STORIES.md](./USER_STORIES.md) - User stories et statuts
+- **[PROJECT_CONCEPT.md](./PROJECT_CONCEPT.md)** - Concept original et roadmap complète
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Architecture technique détaillée
+- **[USER_STORIES.md](./USER_STORIES.md)** - User stories avec statuts d'implémentation
+- **[docs/](./docs/)** - Documentation complète du projet
 
 ## 🤝 Contributing
 
