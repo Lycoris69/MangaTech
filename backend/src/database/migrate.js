@@ -104,6 +104,24 @@ const createTables = async () => {
       );
     `);
 
+    // Chapter pages table (for scraped images)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS chapter_pages (
+        id SERIAL PRIMARY KEY,
+        chapter_id INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
+        page_number INTEGER NOT NULL,
+        image_url TEXT NOT NULL,
+        image_width INTEGER,
+        image_height INTEGER,
+        image_cached_path TEXT,
+        file_size BIGINT,
+        cached_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(chapter_id, page_number)
+      );
+    `);
+
     // Create indexes for performance
     await db.query(`
       CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id ON bookmarks(user_id);
@@ -111,6 +129,8 @@ const createTables = async () => {
       CREATE INDEX IF NOT EXISTS idx_progress_user_id ON reading_progress(user_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+      CREATE INDEX IF NOT EXISTS idx_chapter_pages_chapter_id ON chapter_pages(chapter_id);
+      CREATE INDEX IF NOT EXISTS idx_chapter_pages_cached ON chapter_pages(image_cached_path) WHERE image_cached_path IS NOT NULL;
     `);
 
     console.log('✅ All database tables created successfully');

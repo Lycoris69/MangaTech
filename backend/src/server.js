@@ -12,6 +12,7 @@ const bookmarkRoutes = require('./routes/bookmark.routes');
 const chapterRoutes = require('./routes/chapter.routes');
 const progressRoutes = require('./routes/progress.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const scraperRoutes = require('./routes/scraper.routes');
 
 // Import services
 const notificationService = require('./services/notification.service');
@@ -31,6 +32,7 @@ app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/chapters', chapterRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/scraper', scraperRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
