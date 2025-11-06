@@ -1,187 +1,219 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
+import React, { useState } from 'react';
+import { 
+  View, 
+  ScrollView, 
+  Text, 
+  StyleSheet, 
   TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
-import { bookmarkService } from '../services';
+import { Ionicons } from '@expo/vector-icons';
+import { 
+  GradientBackground, 
+  HolographicText, 
+  MangaCard,
+  GlowButton 
+} from '../components/ui';
+import { colors, spacing, typography, borderRadius } from '../styles/theme';
 
 export default function HomeScreen({ navigation }) {
-  const [bookmarks, setBookmarks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    loadBookmarks();
-  }, []);
-
-  const loadBookmarks = async () => {
-    try {
-      const data = await bookmarkService.getAll();
-      setBookmarks(data);
-    } catch (error) {
-      console.error('Failed to load bookmarks:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Mock data
+  const recents = [
+    { id: '1', title: 'Recent #1' },
+    { id: '2', title: 'Recent #2' },
+  ];
+  
+  const newReleases = [
+    { id: '3', title: 'New #1' },
+    { id: '4', title: 'New #2' },
+    { id: '5', title: 'New #3' },
+    { id: '6', title: 'New #4' },
+  ];
+  
+  const trending = [
+    { id: '7', title: 'Trend #1' },
+    { id: '8', title: 'Trend #2' },
+  ];
+  
+  const handleMangaPress = (manga) => {
+    navigation.navigate('Reader', { mangaId: manga.id });
   };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadBookmarks();
-  };
-
-  const renderMangaItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.mangaCard}
-      onPress={() => navigation.navigate('MangaDetail', { manga: item })}
-    >
-      <View style={styles.mangaInfo}>
-        <Text style={styles.mangaTitle}>{item.title}</Text>
-        {item.last_chapter_number && (
-          <Text style={styles.mangaChapter}>
-            Chapitre {item.last_chapter_number}
-          </Text>
-        )}
-        {Boolean(item.is_favorite) && (
-          <Text style={styles.favoriteTag}>⭐ Favori</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
-
+  
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ma Bibliothèque</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('AddManga')}
-        >
-          <Text style={styles.addButtonText}>+ Ajouter</Text>
-        </TouchableOpacity>
-      </View>
-
-      {bookmarks.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Aucun manga dans votre bibliothèque</Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('AddManga')}
-          >
-            <Text style={styles.buttonText}>Ajouter un manga</Text>
+    <GradientBackground variant="dark">
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <HolographicText fontSize={32} fontWeight="900">
+            MangaTech
+          </HolographicText>
+          <TouchableOpacity style={styles.searchButton}>
+            <Ionicons name="search" size={24} color={colors.purple.neon} />
           </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={bookmarks}
-          renderItem={renderMangaItem}
-          keyExtractor={(item) => item.id.toString()}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
-      )}
-    </View>
+        
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Quick Navigation */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Access</Text>
+            <View style={styles.navigationGrid}>
+              <TouchableOpacity 
+                style={styles.navCard}
+                onPress={() => navigation.navigate('Reader', { chapterId: 1 })}
+              >
+                <Ionicons name="book" size={32} color={colors.purple.neon} />
+                <Text style={styles.navCardText}>Reader</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.navCard}
+                onPress={() => navigation.navigate('Library')}
+              >
+                <Ionicons name="library" size={32} color={colors.cyan.neon} />
+                <Text style={styles.navCardText}>Library</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.navCard}
+                onPress={() => navigation.navigate('Settings')}
+              >
+                <Ionicons name="settings" size={32} color={colors.pink.main} />
+                <Text style={styles.navCardText}>Settings</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.navCard}
+                onPress={() => navigation.navigate('Notifications')}
+              >
+                <Ionicons name="notifications" size={32} color={colors.purple.neon} />
+                <Text style={styles.navCardText}>Notifications</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {/* Recents Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recents</Text>
+            <View style={styles.horizontalList}>
+              {recents.map((manga) => (
+                <MangaCard
+                  key={manga.id}
+                  title={manga.title}
+                  onPress={() => handleMangaPress(manga)}
+                  isRecent
+                />
+              ))}
+            </View>
+          </View>
+          
+          {/* New Releases Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>New Releases</Text>
+            <View style={styles.horizontalList}>
+              {newReleases.map((manga) => (
+                <MangaCard
+                  key={manga.id}
+                  title={manga.title}
+                  onPress={() => handleMangaPress(manga)}
+                />
+              ))}
+            </View>
+          </View>
+          
+          {/* Trending Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Trending</Text>
+            <View style={styles.horizontalList}>
+              {trending.map((manga) => (
+                <MangaCard
+                  key={manga.id}
+                  title={manga.title}
+                  onPress={() => handleMangaPress(manga)}
+                />
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
+
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  mangaCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginHorizontal: 10,
-    marginVertical: 5,
-    borderRadius: 8,
+  
+  searchButton: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.gray,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.purple.neon,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  mangaInfo: {
+  
+  scrollView: {
     flex: 1,
+    paddingHorizontal: spacing.md,
   },
-  mangaTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
+  
+  section: {
+    marginBottom: spacing.lg,
   },
-  mangaChapter: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 3,
+  
+  sectionTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
   },
-  favoriteTag: {
-    fontSize: 12,
-    color: '#FF9500',
-    marginTop: 5,
+  
+  horizontalList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  emptyContainer: {
-    flex: 1,
+  
+  navigationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  
+  navCard: {
+    width: '47%',
+    aspectRatio: 1,
+    backgroundColor: colors.gray,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.purple.neon,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    marginBottom: spacing.sm,
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  
+  navCardText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.primary,
+    marginTop: spacing.sm,
   },
 });

@@ -70,7 +70,7 @@ start: ## Démarre tout le projet (DB + Backend + Mobile avec QR code)
 	@printf "\033[0;32m📱 Scannez le QR code ci-dessous :\033[0m\n"
 	@printf "\033[0;32m========================================\033[0m\n"
 	@echo ""
-	cd mobile && npx expo start --offline
+	cd mobile && npx expo start -c --offline
 
 start-bg: ## Démarre tout en arrière-plan et affiche le QR code
 	@printf "\033[0;34m========================================\033[0m\n"

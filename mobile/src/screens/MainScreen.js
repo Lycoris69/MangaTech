@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MainScreen({ navigation }) {
@@ -52,6 +53,15 @@ export default function MainScreen({ navigation }) {
         <Text style={styles.subtitle}>Bienvenue !</Text>
       </View>
 
+      {/* Bouton vers Home */}
+      <TouchableOpacity 
+        style={styles.homeButton}
+        onPress={() => navigation.navigate('Home')}
+      >
+        <Ionicons name="home" size={28} color="#fff" />
+        <Text style={styles.homeButtonText}>Go to New Home</Text>
+      </TouchableOpacity>
+
       {user && (
         <View style={styles.userInfo}>
           <Text style={styles.label}>Utilisateur:</Text>
@@ -97,6 +107,29 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     color: '#666',
+  },
+  homeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#9333EA',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#C084FC',
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  homeButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 12,
   },
   userInfo: {
     backgroundColor: '#f5f5f5',

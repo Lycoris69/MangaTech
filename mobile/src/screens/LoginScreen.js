@@ -7,8 +7,14 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GradientBackground, HolographicText, GlowButton } from '../components/ui';
+import { colors, spacing, typography, borderRadius, shadows } from '../styles/theme';
 import api from '../services/api';
 
 export default function LoginScreen({ navigation }) {
@@ -33,8 +39,8 @@ export default function LoginScreen({ navigation }) {
       await AsyncStorage.setItem('token', response.data.token);
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
 
-      // Navigate to Main screen
-      navigation.replace('Main');
+      // Navigate to Home (TabNavigator will handle it)
+      // No need to navigate, AuthContext will update
       
     } catch (error) {
       console.error('Login error:', error);
@@ -46,101 +52,147 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>MangaTech</Text>
-      <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
+    <GradientBackground variant="dark">
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Se connecter</Text>
-        )}
-      </TouchableOpacity>
+        {/* Logo */}
+        <View style={styles.header}>
+          <HolographicText fontSize={48} fontWeight="900" glow>
+            MangaTech
+          </HolographicText>
+          <Text style={styles.subtitle}>
+            Welcome Back
+          </Text>
+        </View>
 
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Register')}
-        disabled={loading}
-      >
-        <Text style={styles.linkText}>
-          Pas encore de compte ? S'inscrire
-        </Text>
-      </TouchableOpacity>
-    </View>
+        {/* Form Container */}
+        <View style={styles.formContainer}>
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color={colors.purple.neon} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={colors.text.tertiary}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color={colors.purple.neon} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={colors.text.tertiary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
+
+          {/* Login Button */}
+          <GlowButton
+            title="Login"
+            onPress={handleLogin}
+            loading={loading}
+            style={styles.loginButton}
+          />
+
+          {/* Register Link */}
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Register')}
+            disabled={loading}
+            style={styles.linkContainer}
+          >
+            <Text style={styles.linkText}>
+              Don't have an account? <Text style={styles.linkTextBold}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-    color: '#007AFF',
+  
+  scrollContent: {
+    padding: spacing.xl,
+    paddingTop: 60,
   },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#666',
-  },
-  input: {
-    height: 50,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  button: {
-    height: 50,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    justifyContent: 'center',
+  
+  header: {
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: spacing.lg,
   },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
+  
+  subtitle: {
+    fontSize: typography.sizes.lg,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    letterSpacing: 1,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  
+  formContainer: {
+    width: '100%',
+    marginTop: spacing.xs,
   },
+  
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(42, 42, 56, 0.8)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.purple.neon,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.purpleGlow,
+  },
+  
+  inputIcon: {
+    marginRight: spacing.sm,
+  },
+  
+  input: {
+    flex: 1,
+    height: 56,
+    fontSize: typography.sizes.lg,
+    color: colors.text.primary,
+    fontWeight: typography.weights.medium,
+  },
+  
+  loginButton: {
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  
+  linkContainer: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  
   linkText: {
-    textAlign: 'center',
-    marginTop: 20,
-    color: '#007AFF',
-    fontSize: 14,
+    fontSize: typography.sizes.md,
+    color: colors.text.secondary,
+  },
+  
+  linkTextBold: {
+    color: colors.purple.neon,
+    fontWeight: typography.weights.bold,
   },
 });

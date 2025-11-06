@@ -7,8 +7,13 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { GradientBackground, HolographicText, GlowButton } from '../components/ui';
+import { colors, spacing, typography, borderRadius, shadows } from '../styles/theme';
 import api from '../services/api';
 
 export default function RegisterScreen({ navigation }) {
@@ -42,12 +47,9 @@ export default function RegisterScreen({ navigation }) {
         username: username.trim(),
       });
 
-      // Save token and user data
-      await AsyncStorage.setItem('token', response.data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-
-      // Navigate to Main screen
-      navigation.replace('Main');
+      Alert.alert('Success!', 'Account created successfully!', [
+        { text: 'OK', onPress: () => navigation.navigate('Login') }
+      ]);
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -59,119 +61,172 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Créer un compte</Text>
-      <Text style={styles.subtitle}>Rejoignez MangaTech</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Nom d'utilisateur"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Confirmer le mot de passe"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        editable={!loading}
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleRegister}
-        disabled={loading}
+    <GradientBackground variant="dark">
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>S'inscrire</Text>
-        )}
-      </TouchableOpacity>
+        {/* Header */}
+        <View style={styles.header}>
+          <HolographicText fontSize={48} fontWeight="900" glow>
+            Join Us
+          </HolographicText>
+          <Text style={styles.subtitle}>Create your account</Text>
+        </View>
 
-      <TouchableOpacity 
-        onPress={() => navigation.goBack()}
-        disabled={loading}
-      >
-        <Text style={styles.linkText}>
-          Déjà un compte ? Se connecter
-        </Text>
-      </TouchableOpacity>
-    </View>
+        {/* Form Container */}
+        <View style={styles.formContainer}>
+          {/* Username Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={colors.purple.neon} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor={colors.text.tertiary}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Email Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color={colors.cyan.neon} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={colors.text.tertiary}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color={colors.pink.main} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={colors.text.tertiary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
+
+          {/* Confirm Password Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color={colors.pink.main} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor={colors.text.tertiary}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
+
+          {/* Register Button */}
+          <GlowButton
+            title="Sign Up"
+            onPress={handleRegister}
+            loading={loading}
+            style={styles.registerButton}
+          />
+
+          {/* Login Link */}
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Login')}
+            disabled={loading}
+            style={styles.linkContainer}
+          >
+            <Text style={styles.linkText}>
+              Already have an account? <Text style={styles.linkTextBold}>Login</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-    color: '#007AFF',
+  
+  scrollContent: {
+    padding: spacing.xl,
+    paddingTop: 40,
   },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#666',
-  },
-  input: {
-    height: 50,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  button: {
-    height: 50,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    justifyContent: 'center',
+  
+  header: {
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: spacing.xl,
   },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
+  
+  subtitle: {
+    fontSize: typography.sizes.lg,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    letterSpacing: 1,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  
+  formContainer: {
+    width: '100%',
   },
+  
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(42, 42, 56, 0.8)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.purple.neon,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.purpleGlow,
+  },
+  
+  inputIcon: {
+    marginRight: spacing.sm,
+  },
+  
+  input: {
+    flex: 1,
+    height: 56,
+    fontSize: typography.sizes.lg,
+    color: colors.text.primary,
+    fontWeight: typography.weights.medium,
+  },
+  
+  registerButton: {
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  
+  linkContainer: {
+    marginTop: spacing.md,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  
   linkText: {
-    textAlign: 'center',
-    marginTop: 20,
-    color: '#007AFF',
-    fontSize: 14,
+    fontSize: typography.sizes.md,
+    color: colors.text.secondary,
+  },
+  
+  linkTextBold: {
+    color: colors.cyan.neon,
+    fontWeight: typography.weights.bold,
   },
 });
