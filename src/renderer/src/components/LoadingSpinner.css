@@ -1,0 +1,239 @@
+/* Loading Spinner Styles */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.loading-spinner.small {
+  padding: 1rem;
+}
+
+.loading-spinner.large {
+  padding: 3rem;
+}
+
+.spinner-circle {
+  position: relative;
+  display: inline-block;
+}
+
+.loading-spinner.small .spinner-circle {
+  width: 24px;
+  height: 24px;
+}
+
+.loading-spinner.medium .spinner-circle {
+  width: 40px;
+  height: 40px;
+}
+
+.loading-spinner.large .spinner-circle {
+  width: 60px;
+  height: 60px;
+}
+
+.spinner-inner {
+  width: 100%;
+  height: 100%;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4a9eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-spinner.small .spinner-inner {
+  border-width: 2px;
+}
+
+.loading-spinner.large .spinner-inner {
+  border-width: 4px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner-message {
+  margin-top: 1rem;
+  color: #6c757d;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.loading-spinner.small .spinner-message {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.loading-spinner.large .spinner-message {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+/* Loading State Container */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background-color: #fff5f5;
+  border-radius: 8px;
+  border: 1px solid #fed7d7;
+}
+
+.error-content {
+  text-align: center;
+  padding: 2rem;
+  max-width: 400px;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.error-content h3 {
+  color: #e53e3e;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.error-content p {
+  color: #718096;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.retry-button {
+  background-color: #4a9eff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background-color: #357abd;
+  transform: translateY(-1px);
+}
+
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-image {
+  display: block;
+}
+
+.skeleton-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-line {
+  display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .loading-spinner {
+    padding: 1.5rem;
+  }
+
+  .loading-spinner.large {
+    padding: 2rem;
+  }
+
+  .error-content {
+    padding: 1.5rem;
+  }
+
+  .loading-state,
+  .error-state {
+    min-height: 150px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .loading-state {
+    background-color: #2d3748;
+    border-color: #4a5568;
+  }
+
+  .spinner-inner {
+    border-color: #4a5568;
+    border-top-color: #4a9eff;
+  }
+
+  .spinner-message {
+    color: #a0aec0;
+  }
+
+  .loading-overlay {
+    background-color: rgba(45, 55, 72, 0.9);
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #4a5568 25%, #2d3748 50%, #4a5568 75%);
+    background-size: 200% 100%;
+  }
+
+  .skeleton-card {
+    background: #2d3748;
+  }
+}

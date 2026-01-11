@@ -1,0 +1,120 @@
+{
+  "entries": [
+    {
+      "key": "search:test-query",
+      "data": {
+        "query": "test query",
+        "results": [
+          {
+            "id": "search-1",
+            "title": "Search Result 1",
+            "author": "Author 1",
+            "coverImageUrl": "https://example.com/search1.jpg",
+            "synopsis": "Test synopsis",
+            "genres": [
+              "Action"
+            ],
+            "status": "ongoing",
+            "rating": 4,
+            "sourceUrl": "https://manhwaz.com/series/search1"
+          }
+        ],
+        "totalResults": 1,
+        "hasMore": false,
+        "suggestions": []
+      },
+      "timestamp": 1765730507486,
+      "expiresAt": 1765731107486,
+      "accessCount": 2,
+      "lastAccessed": 1765730507486,
+      "size": 324,
+      "tags": [
+        "search"
+      ]
+    },
+    {
+      "key": "search:normalized-query",
+      "data": {
+        "query": "normalized query",
+        "results": [],
+        "totalResults": 0,
+        "hasMore": false,
+        "suggestions": []
+      },
+      "timestamp": 1765730507487,
+      "expiresAt": 1765731107487,
+      "accessCount": 2,
+      "lastAccessed": 1765730507487,
+      "size": 91,
+      "tags": [
+        "search"
+      ]
+    },
+    {
+      "key": "series:series-1",
+      "data": {
+        "id": "series-1",
+        "title": "Test Series",
+        "alternativeTitles": [
+          "Alt Title"
+        ],
+        "author": "Test Author",
+        "artist": "Test Artist",
+        "synopsis": "Test synopsis",
+        "coverImageUrl": "https://example.com/series1.jpg",
+        "genres": [
+          "Action",
+          "Adventure"
+        ],
+        "status": "ongoing",
+        "rating": 4.5,
+        "viewCount": 50000,
+        "chapters": [
+          {
+            "id": "chapter-1",
+            "chapterNumber": "1",
+            "title": "Chapter 1",
+            "publishDate": "2025-12-14T16:41:47.488Z",
+            "chapterUrl": "https://manhwaz.com/chapter/1"
+          }
+        ],
+        "lastUpdated": "2025-12-14T16:41:47.488Z",
+        "sourceUrl": "https://manhwaz.com/series/1"
+      },
+      "timestamp": 1765730507488,
+      "expiresAt": 1765734107488,
+      "accessCount": 2,
+      "lastAccessed": 1765730507488,
+      "size": 520,
+      "tags": [
+        "series",
+        "series:series-1"
+      ]
+    },
+    {
+      "key": "homepage:latest-releases",
+      "data": [
+        {
+          "id": "release-1",
+          "seriesTitle": "Test Series 1",
+          "chapterNumber": "1",
+          "coverImageUrl": "https://example.com/cover1.jpg",
+          "publishDate": "2025-12-14T16:41:47.501Z",
+          "seriesUrl": "https://manhwaz.com/series/1",
+          "chapterUrl": "https://manhwaz.com/chapter/1",
+          "isNew": true
+        }
+      ],
+      "timestamp": 1765730507501,
+      "expiresAt": 1765730807501,
+      "accessCount": 1,
+      "lastAccessed": 1765730507501,
+      "size": 261,
+      "tags": [
+        "homepage",
+        "latest-releases"
+      ]
+    }
+  ],
+  "timestamp": 1765730507527
+}

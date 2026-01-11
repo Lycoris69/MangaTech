@@ -3,8 +3,8 @@
 ## Fonctionnalités de Base
 
 ### US01 - Navigation Automatique
-**En tant qu'** utilisateur de l'application  
-**Je veux** que l'application fasse défiler automatiquement les pages d'un chapitre  
+**En tant qu'** utilisateur de l'application
+**Je veux** que l'application fasse défiler automatiquement les pages d'un chapitre
 **Afin de** lire de manière fluide sans avoir à toucher constamment l'écran
 
 **Critères d'acceptation:**
@@ -16,8 +16,8 @@
 ---
 
 ### US02 - Affichage Plein-Écran
-**En tant qu'** utilisateur  
-**Je veux** que l'application passe automatiquement en mode plein-écran lors de la lecture  
+**En tant qu'** utilisateur
+**Je veux** que l'application passe automatiquement en mode plein-écran lors de la lecture
 **Afin d'** avoir une expérience immersive sans distractions
 
 **Critères d'acceptation:**
@@ -29,8 +29,8 @@
 ---
 
 ### US03 - Gestion des Signets
-**En tant que** lecteur de manga  
-**Je veux** pouvoir sauvegarder l'adresse d'un scan de manga  
+**En tant que** lecteur de manga
+**Je veux** pouvoir sauvegarder l'adresse d'un scan de manga
 **Afin de** retrouver facilement mes séries favorites
 
 **Critères d'acceptation:**
@@ -45,8 +45,8 @@
 ---
 
 ### US04 - Suivi de Progression
-**En tant qu'** utilisateur  
-**Je veux** que l'application mémorise où j'en suis dans ma lecture  
+**En tant qu'** utilisateur
+**Je veux** que l'application mémorise où j'en suis dans ma lecture
 **Afin de** reprendre exactement où je me suis arrêté
 
 **Critères d'acceptation:**
@@ -63,8 +63,8 @@
 ## Fonctionnalités de Notification
 
 ### US05 - Notifications de Nouveaux Chapitres
-**En tant que** fan de manga  
-**Je veux** être notifié automatiquement quand un nouveau chapitre sort  
+**En tant que** fan de manga
+**Je veux** être notifié automatiquement quand un nouveau chapitre sort
 **Afin de** ne pas rater les mises à jour de mes séries suivies
 
 **Critères d'acceptation:**
@@ -79,8 +79,8 @@
 ---
 
 ### US06 - Gestion des Notifications
-**En tant qu'** utilisateur  
-**Je veux** pouvoir activer/désactiver les notifications par série  
+**En tant qu'** utilisateur
+**Je veux** pouvoir activer/désactiver les notifications par série
 **Afin de** contrôler les alertes selon mes préférences
 
 **Critères d'acceptation:**
@@ -97,8 +97,8 @@
 ## Fonctionnalités Avancées
 
 ### US07 - Téléchargement Hors-Ligne
-**En tant qu'** utilisateur mobile  
-**Je veux** pouvoir télécharger des chapitres sur mon appareil  
+**En tant qu'** utilisateur mobile
+**Je veux** pouvoir télécharger des chapitres sur mon appareil
 **Afin de** lire sans connexion internet
 
 **Critères d'acceptation:**
@@ -114,8 +114,8 @@
 ---
 
 ### US08 - Gestion du Stockage
-**En tant qu'** utilisateur  
-**Je veux** pouvoir gérer l'espace occupé par les téléchargements  
+**En tant qu'** utilisateur
+**Je veux** pouvoir gérer l'espace occupé par les téléchargements
 **Afin d'** optimiser l'utilisation de la mémoire de mon appareil
 
 **Critères d'acceptation:**
@@ -130,8 +130,8 @@
 ---
 
 ### US09 - Lecture Hors-Ligne
-**En tant qu'** utilisateur  
-**Je veux** accéder à mes chapitres téléchargés même sans internet  
+**En tant qu'** utilisateur
+**Je veux** accéder à mes chapitres téléchargés même sans internet
 **Afin de** lire dans le métro, l'avion ou en zone de faible couverture
 
 **Critères d'acceptation:**
@@ -148,8 +148,8 @@
 ## Fonctionnalités d'Interface
 
 ### US10 - Liste des Mangas Suivis
-**En tant qu'** utilisateur  
-**Je veux** voir la liste de tous mes mangas avec leur statut de lecture  
+**En tant qu'** utilisateur
+**Je veux** voir la liste de tous mes mangas avec leur statut de lecture
 **Afin d'** avoir une vue d'ensemble de ma bibliothèque
 
 **Critères d'acceptation:**
@@ -165,8 +165,8 @@
 ---
 
 ### US11 - Recherche et Ajout
-**En tant qu'** utilisateur  
-**Je veux** pouvoir ajouter facilement un nouveau manga à suivre  
+**En tant qu'** utilisateur
+**Je veux** pouvoir ajouter facilement un nouveau manga à suivre
 **Afin d'** enrichir ma collection sans complexité
 
 **Critères d'acceptation:**

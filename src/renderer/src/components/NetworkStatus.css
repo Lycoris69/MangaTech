@@ -1,0 +1,178 @@
+.network-status {
+  position: fixed;
+  top: 70px; /* Below navigation bar */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  animation: slideDown 0.3s ease-out;
+}
+
+.network-status.offline {
+  background-color: rgba(220, 53, 69, 0.95);
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.network-status.reconnected {
+  background-color: rgba(40, 167, 69, 0.95);
+  color: white;
+  border: 1px solid #28a745;
+  animation: slideDown 0.3s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.status-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.status-icon {
+  font-size: 1rem;
+}
+
+.status-text {
+  white-space: nowrap;
+}
+
+.retry-connection {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.retry-connection:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Connection Quality Indicator */
+.connection-quality {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.connection-quality.good {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.connection-quality.fair {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.connection-quality.poor {
+  background-color: rgba(255, 87, 34, 0.1);
+  color: #ff5722;
+  border: 1px solid rgba(255, 87, 34, 0.2);
+}
+
+.connection-quality.offline {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.quality-icon {
+  font-size: 0.9rem;
+}
+
+.quality-text {
+  white-space: nowrap;
+}
+
+.latency {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-left: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .network-status {
+    top: 60px;
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+    width: auto;
+  }
+
+  .status-content {
+    font-size: 0.8rem;
+  }
+
+  .retry-connection {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  .connection-quality {
+    font-size: 0.7rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .network-status.offline {
+    background-color: rgba(220, 53, 69, 0.9);
+  }
+
+  .network-status.reconnected {
+    background-color: rgba(40, 167, 69, 0.9);
+  }
+
+  .connection-quality.good {
+    background-color: rgba(40, 167, 69, 0.2);
+  }
+
+  .connection-quality.fair {
+    background-color: rgba(255, 193, 7, 0.2);
+  }
+
+  .connection-quality.poor {
+    background-color: rgba(255, 87, 34, 0.2);
+  }
+
+  .connection-quality.offline {
+    background-color: rgba(220, 53, 69, 0.2);
+  }
+}

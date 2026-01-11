@@ -1,0 +1,139 @@
+.navigation-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+  color: white;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.nav-brand .brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-brand h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4a9eff;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #ccc;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: white;
+  background-color: rgba(74, 158, 255, 0.1);
+}
+
+.nav-link.active {
+  color: #4a9eff;
+  background-color: rgba(74, 158, 255, 0.2);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.resume-reading-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  border: 1px solid #4CAF50;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.resume-reading-button:hover {
+  background-color: #45a049;
+  border-color: #45a049;
+  transform: translateY(-1px);
+}
+
+.preferences-indicator {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 50%;
+  background-color: rgba(74, 158, 255, 0.1);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+}
+
+.preference-badge {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.mode-toggle:hover {
+  background-color: #444;
+  border-color: #666;
+}
+
+.mode-toggle.reading {
+  background-color: #4a9eff;
+  border-color: #4a9eff;
+}
+
+.mode-toggle.reading:hover {
+  background-color: #3a8eef;
+}
+
+.mode-text {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .navigation-bar {
+    padding: 0.5rem 1rem;
+  }
+  
+  .nav-links {
+    gap: 1rem;
+  }
+  
+  .mode-text {
+    display: none;
+  }
+}
