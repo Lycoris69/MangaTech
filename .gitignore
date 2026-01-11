@@ -19,6 +19,7 @@ release/
 # IDE files
 .vscode/
 .idea/
+.agents/
 *.swp
 *.swo
 
