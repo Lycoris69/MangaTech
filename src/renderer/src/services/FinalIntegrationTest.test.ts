@@ -53,7 +53,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should initialize all scraper components correctly', () => {
       // Test that ManhwazScraper initializes with all required components
       const scraper = new ManhwazScraper()
-      
+
       // Verify all components are initialized (Requirements: All requirements integration)
       expect(scraper.getURLManager()).toBeInstanceOf(URLManager)
       expect(scraper.getRateLimiter()).toBeInstanceOf(RateLimiter)
@@ -68,15 +68,15 @@ describe('Final Integration Tests - Task 13', () => {
 
     it('should provide comprehensive performance statistics', () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test performance monitoring integration (Requirements 8.4, 8.5)
       const stats = scraper.getPerformanceStats()
-      
+
       expect(stats).toHaveProperty('rateLimiting')
       expect(stats).toHaveProperty('cache')
       expect(stats).toHaveProperty('performance')
       expect(stats).toHaveProperty('queue')
-      
+
       // Verify rate limiting stats
       expect(stats.rateLimiting.requestsPerSecond).toBe(1)
       expect(stats.rateLimiting.burstLimit).toBe(3)
@@ -85,11 +85,11 @@ describe('Final Integration Tests - Task 13', () => {
 
     it('should handle cache operations correctly', async () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test cache integration (Requirements: Performance optimization)
       await scraper.invalidateCache('homepage')
       await scraper.warmCache(['https://manhwaz.com'])
-      
+
       const cacheStats = scraper.getCacheService().getCacheStats()
       expect(cacheStats).toHaveProperty('memoryUsage')
       expect(cacheStats).toHaveProperty('diskUsage')
@@ -100,7 +100,7 @@ describe('Final Integration Tests - Task 13', () => {
   describe('Error Handling Integration', () => {
     it('should validate input parameters correctly', async () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test input validation (Requirements 3.1, 4.4)
       await expect(scraper.searchSeries('')).rejects.toThrow('Search query cannot be empty')
       await expect(scraper.searchSeries('   ')).rejects.toThrow('Search query cannot be empty')
@@ -110,7 +110,7 @@ describe('Final Integration Tests - Task 13', () => {
 
     it('should handle URL validation correctly', async () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test URL validation (Requirements 1.4, 2.4)
       const validUrl = 'https://manhwaz.com/series/test'
       const invalidUrls = [
@@ -133,12 +133,12 @@ describe('Final Integration Tests - Task 13', () => {
 
     it('should provide proper error logging capabilities', () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test error logging integration (Requirements 8.1, 8.3)
       const urlManager = scraper.getURLManager()
       const rateLimiter = scraper.getRateLimiter()
       const contentValidator = scraper.getContentValidator()
-      
+
       // All components should be properly initialized for error handling
       expect(urlManager).toBeDefined()
       expect(rateLimiter).toBeDefined()
@@ -150,7 +150,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should configure rate limiting correctly', () => {
       const scraper = new ManhwazScraper()
       const rateLimiter = scraper.getRateLimiter()
-      
+
       // Test rate limiting configuration (Requirements 5.1, 5.2, 5.4, 5.5)
       const stats = scraper.getRateLimitStats()
       expect(stats.requestsPerSecond).toBe(1) // Conservative rate
@@ -161,7 +161,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should provide retry mechanisms', () => {
       const scraper = new ManhwazScraper()
       const retryHandler = scraper.getRetryHandler()
-      
+
       // Test retry handler integration (Requirements 5.2, 8.2)
       expect(retryHandler).toBeDefined()
       expect(typeof retryHandler.executeWithRetry).toBe('function')
@@ -172,7 +172,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should validate different content types', () => {
       const scraper = new ManhwazScraper()
       const validator = scraper.getContentValidator()
-      
+
       // Test content validation capabilities (Requirements 4.4, 1.2, 2.2)
       expect(validator).toBeDefined()
       expect(typeof validator.validateLatestReleases).toBe('function')
@@ -186,7 +186,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should handle metadata completeness validation', () => {
       const scraper = new ManhwazScraper()
       const validator = scraper.getContentValidator()
-      
+
       // Test metadata validation (Requirements 1.2, 2.2, 3.3, 4.1, 4.2)
       const mockLatestRelease = {
         id: 'test-release',
@@ -198,7 +198,7 @@ describe('Final Integration Tests - Task 13', () => {
         chapterUrl: 'https://manhwaz.com/chapter/1',
         isNew: true
       }
-      
+
       const validationResult = validator.validateLatestReleases([mockLatestRelease])
       expect(validationResult.isValid).toBe(true)
       expect(validationResult.errors).toEqual([])
@@ -209,7 +209,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should maintain manhwaz.com URL structure', () => {
       const scraper = new ManhwazScraper()
       const urlManager = scraper.getURLManager()
-      
+
       // Test URL structure mirroring (Requirements 6.1, 6.4)
       expect(urlManager.getBaseUrl()).toBe('https://manhwaz.com')
       expect(urlManager.buildSeriesUrl('test-series')).toContain('manhwaz.com')
@@ -219,14 +219,14 @@ describe('Final Integration Tests - Task 13', () => {
 
     it('should handle content organization consistently', () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test content organization (Requirements 6.4)
       const hotScansExtractor = scraper.getHotScansExtractor()
       const latestReleasesExtractor = scraper.getLatestReleasesExtractor()
-      
+
       expect(hotScansExtractor).toBeDefined()
       expect(latestReleasesExtractor).toBeDefined()
-      
+
       // Both extractors should have cache capabilities
       expect(typeof hotScansExtractor.clearCache).toBe('function')
       expect(typeof latestReleasesExtractor.clearCache).toBe('function')
@@ -237,7 +237,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should provide comprehensive caching capabilities', async () => {
       const scraper = new ManhwazScraper()
       const cacheService = scraper.getCacheService()
-      
+
       // Test caching integration (Requirements: Performance optimization)
       expect(cacheService).toBeDefined()
       expect(typeof cacheService.cacheLatestReleases).toBe('function')
@@ -245,11 +245,11 @@ describe('Final Integration Tests - Task 13', () => {
       expect(typeof cacheService.cacheSearchResults).toBe('function')
       expect(typeof cacheService.cacheSeriesDetails).toBe('function')
       expect(typeof cacheService.cacheChapterPages).toBe('function')
-      
+
       // Test cache invalidation
       await cacheService.invalidateCache('homepage')
       await cacheService.clearExpiredCache()
-      
+
       const stats = cacheService.getCacheStats()
       expect(stats).toHaveProperty('memoryUsage')
       expect(stats).toHaveProperty('diskUsage')
@@ -258,12 +258,12 @@ describe('Final Integration Tests - Task 13', () => {
     it('should provide performance optimization features', () => {
       const scraper = new ManhwazScraper()
       const performanceOptimizer = scraper.getPerformanceOptimizer()
-      
+
       // Test performance optimization (Requirements 7.5)
       expect(performanceOptimizer).toBeDefined()
       expect(typeof performanceOptimizer.getMetrics).toBe('function')
       expect(typeof performanceOptimizer.getQueueStats).toBe('function')
-      
+
       const metrics = performanceOptimizer.getMetrics()
       expect(metrics).toHaveProperty('averageResponseTime')
       expect(metrics).toHaveProperty('totalRequests')
@@ -275,7 +275,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should provide comprehensive search capabilities', () => {
       const scraper = new ManhwazScraper()
       const searchInterface = scraper.getSearchInterface()
-      
+
       // Test search integration (Requirements 3.1, 3.2, 3.5)
       expect(searchInterface).toBeDefined()
       expect(typeof searchInterface.searchSeries).toBe('function')
@@ -284,11 +284,11 @@ describe('Final Integration Tests - Task 13', () => {
 
     it('should handle search validation correctly', async () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test search validation (Requirements 3.4)
       await expect(scraper.searchSeries('')).rejects.toThrow()
       await expect(scraper.searchSeries('   ')).rejects.toThrow()
-      
+
       // Valid search queries should not throw validation errors
       expect(() => scraper.searchSeries('valid query')).not.toThrow()
     })
@@ -298,7 +298,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should provide series details extraction capabilities', () => {
       const scraper = new ManhwazScraper()
       const seriesDetailsExtractor = scraper.getSeriesDetailsExtractor()
-      
+
       // Test series details integration (Requirements 4.1, 4.2, 4.3)
       expect(seriesDetailsExtractor).toBeDefined()
       expect(typeof seriesDetailsExtractor.extractSeriesDetails).toBe('function')
@@ -307,7 +307,7 @@ describe('Final Integration Tests - Task 13', () => {
     it('should provide chapter extraction capabilities', () => {
       const scraper = new ManhwazScraper()
       const chapterExtractor = scraper.getChapterExtractor()
-      
+
       // Test chapter extraction integration (Requirements 7.1, 7.2, 7.3)
       expect(chapterExtractor).toBeDefined()
       expect(typeof chapterExtractor.extractChapterPages).toBe('function')
@@ -316,11 +316,11 @@ describe('Final Integration Tests - Task 13', () => {
     it('should handle image processing requirements', () => {
       const scraper = new ManhwazScraper()
       const urlManager = scraper.getURLManager()
-      
+
       // Test image URL handling (Requirements 4.3, 6.3, 7.3)
       const testImageUrl = '/covers/test.jpg'
       const resolvedUrl = urlManager.resolveUrl(testImageUrl)
-      
+
       expect(resolvedUrl).toContain('manhwaz.com')
       expect(resolvedUrl.startsWith('http')).toBe(true)
     })
@@ -329,10 +329,10 @@ describe('Final Integration Tests - Task 13', () => {
   describe('Cleanup and Resource Management', () => {
     it('should provide proper cleanup capabilities', async () => {
       const scraper = new ManhwazScraper()
-      
+
       // Test cleanup integration
       expect(typeof scraper.cleanup).toBe('function')
-      
+
       // Cleanup should not throw errors
       await expect(scraper.cleanup()).resolves.not.toThrow()
     })
@@ -341,7 +341,7 @@ describe('Final Integration Tests - Task 13', () => {
       const scraper = new ManhwazScraper()
       const cacheService = scraper.getCacheService()
       const performanceOptimizer = scraper.getPerformanceOptimizer()
-      
+
       // Test resource management
       expect(typeof cacheService.cleanup).toBe('function')
       expect(typeof performanceOptimizer.cleanup).toBe('function')

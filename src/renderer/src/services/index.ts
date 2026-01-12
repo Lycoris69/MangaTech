@@ -1,37 +1,37 @@
 // Export all services for easy importing
 export { StorageService } from './StorageService'
 export { FileSystemService } from './FileSystemService'
-export { 
-  BaseScraper, 
-  ScrapingError, 
-  RateLimitError, 
-  ValidationError 
+export {
+  BaseScraper,
+  ScrapingError,
+  RateLimitError,
+  ValidationError
 } from './WebScrapingService'
 export type { WebScrapingService } from './WebScrapingService'
 export { ManhwazScraper } from './ManhwazScraper'
 export { ChapterExtractor } from './ChapterExtractor'
 export { ScraperManager } from './ScraperManager'
-export { 
+export {
   SearchService,
   type ContentType,
   type CategorizedSearchResult,
   type CategorizedSearchResults
 } from './SearchService'
-export { 
+export {
   SearchInterface,
   type SearchOptions,
   type AutocompleteResult,
   type SearchResponse
 } from './SearchInterface'
 export { LibraryService } from './LibraryService'
-export { NotificationService } from './NotificationService'
-export { 
+
+export {
   DownloadManager,
   type DownloadProgress,
   type DownloadOptions,
   type DownloadManagerEvents
 } from './DownloadManager'
-export { 
+export {
   ContentIntegrityService,
   type DuplicateDetectionResult,
   type FileIntegrityResult,
@@ -59,7 +59,7 @@ export type { MonitoredOperation, MonitoringResult } from './ScrapingMonitor'
 export { ContentCacheService } from './ContentCacheService'
 export type { CacheConfig, CacheStats } from './ContentCacheService'
 export { PerformanceOptimizer } from './PerformanceOptimizer'
-export type { PerformanceConfig, PerformanceMetrics } from './PerformanceOptimizer'
+export type { PerformanceConfig } from './PerformanceOptimizer'
 
 // Service interfaces for dependency injection and testing
 export interface IStorageService {

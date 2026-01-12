@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { SeriesSearchResult } from '../types';
+import { SeriesCard } from '../components/SeriesCard';
 import { LoadingState } from '../components/LoadingSpinner';
 import { useNotifications } from '../components/NotificationSystem';
 import { errorService } from '../services/ErrorService';
@@ -130,7 +131,7 @@ const SearchPage: React.FC<SearchPageProps> = () => {
           loading={loading}
           error={error}
           loadingMessage="Scanning Archives..."
-          errorMessage={error}
+          errorMessage={error || undefined}
           onRetry={() => performSearch(searchQuery)}
         >
           {hasSearched && searchResults.length > 0 && (
@@ -141,35 +142,18 @@ const SearchPage: React.FC<SearchPageProps> = () => {
 
               <div className="results-grid">
                 {searchResults.map((series) => (
-                  <div
-                    key={series.id}
-                    className="series-card"
-                    onClick={() => handleSeriesClick(series)}
-                  >
-                    <div className="series-cover">
-                      <img
-                        src={series.coverImageUrl}
-                        alt={series.title}
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/placeholder-cover.svg';
-                        }}
-                      />
-                      <div className="series-overlay">
-                        {series.rating > 0 && <div className="series-rating">★ {series.rating.toFixed(1)}</div>}
-                        <div className={`series-status status-${series.status.toLowerCase()}`}>{series.status}</div>
-                      </div>
-                    </div>
-                    <div className="series-info">
-                      <h4 className="series-title">{series.title}</h4>
-                      <p className="series-author">{series.author || 'Unknown'}</p>
-                      <div className="series-genres">
-                        {series.genres?.slice(0, 3).map((genre, index) => (
-                          <span key={index} className="genre-tag">{genre}</span>
-                        ))}
-                      </div>
-                    </div>
+                  <div key={series.id}>
+                    <SeriesCard
+                      id={series.id}
+                      title={series.title}
+                      coverImageUrl={series.coverImageUrl}
+                      status={series.status}
+                      rating={series.rating}
+                      lastUpdated={series.lastUpdated}
+                      latestChapter={series.latestChapter}
+                      subtitle={series.genres?.slice(0, 2).join(', ')}
+                      onClick={() => handleSeriesClick(series)}
+                    />
                   </div>
                 ))}
               </div>

@@ -63,13 +63,7 @@ export class URLManager {
     }
 
     // Build URL from series ID
-    let cleanId = seriesId.trim().replace(/^\/+|\/+$/g, '')
-
-    // Strip the 'manhwaz-series-' prefix if present to avoid double-prefixing
-    if (cleanId.startsWith('manhwaz-series-')) {
-      cleanId = cleanId.replace(/^manhwaz-series-/, '')
-    }
-
+    const cleanId = seriesId.trim().replace(/^\/+|\/+$/g, '')
     if (cleanId === '') {
       throw new Error('Series ID must be a non-empty string')
     }
@@ -95,15 +89,11 @@ export class URLManager {
     }
 
     // Build URL from chapter ID
-    let cleanId = chapterId.trim().replace(/^\/+|\/+$/g, '')
-
-    // If it starts with 'webtoon/', just prepend base URL
-    if (cleanId.startsWith('webtoon/')) {
-      return `${this.baseUrl}/${cleanId}`
+    const cleanId = chapterId.trim().replace(/^\/+|\/+$/g, '')
+    if (cleanId === '') {
+      throw new Error('Chapter ID must be a non-empty string')
     }
-
-    // Default to /webtoon/ structure for ManhwaZ chapters
-    return `${this.baseUrl}/webtoon/${cleanId}`
+    return `${this.baseUrl}/chapter/${cleanId}`
   }
 
   /**
@@ -116,14 +106,10 @@ export class URLManager {
 
   /**
    * Builds homepage URL for manhwaz.com
-   * @param page - Optional page number
    * @returns Homepage URL
    */
   buildHomepageUrl(page: number = 1): string {
-    if (page > 1) {
-      return `${this.baseUrl}/?page=${page}`
-    }
-    return this.baseUrl
+    return page > 1 ? `${this.baseUrl}/page/${page}` : this.baseUrl
   }
 
   /**
@@ -157,8 +143,7 @@ export class URLManager {
 
     try {
       const parsedUrl = new URL(url)
-      // Match both /chapter/ID and /webtoon/SERIES/CHAPTER pattern
-      const pathMatch = parsedUrl.pathname.match(/\/(?:chapter|webtoon\/[^\/]+)\/([^\/]+)/)
+      const pathMatch = parsedUrl.pathname.match(/\/chapter\/([^\/]+)/)
       return pathMatch ? pathMatch[1] : null
     } catch {
       return null

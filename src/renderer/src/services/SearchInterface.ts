@@ -108,20 +108,20 @@ export class SearchInterface {
 
       // Build search URL
       const searchUrl = this.urlManager.buildSearchUrl(trimmedQuery)
-      
+
       // Make HTTP request
       const response = await this.axiosInstance.get(searchUrl)
       const $ = cheerio.load(response.data)
 
       // Parse search results
       const results = this.parseSearchResults($, trimmedQuery)
-      
+
       // Apply filters and sorting
       const filteredResults = this.applyFiltersAndSorting(results, options)
-      
+
       // Extract autocomplete suggestions
       const suggestions = this.extractAutocompleteSuggestions($, trimmedQuery)
-      
+
       // Handle pagination
       const totalCount = this.extractTotalCount($)
       const hasMore = this.checkHasMore($, filteredResults.length, options)
@@ -181,7 +181,7 @@ export class SearchInterface {
 
       // Build autocomplete URL (manhwaz.com might have an autocomplete endpoint)
       const autocompleteUrl = `${this.urlManager.getBaseUrl()}/wp-json/wp/v2/search?search=${encodeURIComponent(trimmedQuery)}&per_page=10`
-      
+
       try {
         const response = await this.axiosInstance.get(autocompleteUrl)
         return this.parseAutocompleteResponse(response.data, trimmedQuery)
@@ -191,7 +191,7 @@ export class SearchInterface {
           query: trimmedQuery,
           error: autocompleteError instanceof Error ? autocompleteError.message : 'Unknown error'
         })
-        
+
         const searchResponse = await this.searchSeries(trimmedQuery, { limit: 5 })
         return this.generateSuggestionsFromResults(searchResponse.results, trimmedQuery)
       }
@@ -242,11 +242,11 @@ export class SearchInterface {
     $results.each((index, element) => {
       try {
         const $item = $(element)
-        
+
         // Extract basic information
         const titleElement = $item.find('h3 a, h2 a, .title a, .manga-title a, .post-title a').first()
         const title = titleElement.text().trim() || titleElement.attr('title')?.trim() || ''
-        
+
         if (!title) {
           SearchInterface.logger.debug('Skipping result with no title', { index })
           return
@@ -262,9 +262,9 @@ export class SearchInterface {
         // Extract cover image
         const imgElement = $item.find('img').first()
         const coverImageUrl = this.urlManager.resolveUrl(
-          imgElement.attr('src') || 
-          imgElement.attr('data-src') || 
-          imgElement.attr('data-lazy-src') || 
+          imgElement.attr('src') ||
+          imgElement.attr('data-src') ||
+          imgElement.attr('data-lazy-src') ||
           ''
         )
 
@@ -316,9 +316,9 @@ export class SearchInterface {
         }
 
         // Generate unique ID from URL
-        const id = this.urlManager.extractSeriesId(seriesUrl) || 
-                  seriesUrl.split('/').pop() || 
-                  `search-${Date.now()}-${index}`
+        const id = this.urlManager.extractSeriesId(seriesUrl) ||
+          seriesUrl.split('/').pop() ||
+          `search-${Date.now()}-${index}`
 
         const result: SeriesSearchResult = {
           id,
@@ -348,10 +348,10 @@ export class SearchInterface {
       }
     })
 
-    SearchInterface.logger.info('Parsed search results', { 
-      query, 
-      totalParsed: results.length, 
-      totalFound: $results.length 
+    SearchInterface.logger.info('Parsed search results', {
+      query,
+      totalParsed: results.length,
+      totalFound: $results.length
     })
 
     return results
@@ -429,12 +429,12 @@ export class SearchInterface {
     // Add unique authors as suggestions
     const authors = new Set<string>()
     for (const result of results) {
-      if (result.author && result.author !== 'Unknown' && 
-          result.author.toLowerCase().includes(query.toLowerCase())) {
+      if (result.author && result.author !== 'Unknown' &&
+        result.author.toLowerCase().includes(query.toLowerCase())) {
         authors.add(result.author)
       }
     }
-    
+
     for (const author of Array.from(authors).slice(0, 3)) {
       suggestions.push({
         suggestion: author,
@@ -474,8 +474,8 @@ export class SearchInterface {
 
       if (genres && genres.length > 0) {
         filteredResults = filteredResults.filter(result =>
-          genres.some(genre => 
-            result.genres.some(resultGenre => 
+          genres.some(genre =>
+            result.genres.some(resultGenre =>
               resultGenre.toLowerCase().includes(genre.toLowerCase())
             )
           )

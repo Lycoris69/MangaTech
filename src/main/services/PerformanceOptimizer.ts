@@ -192,6 +192,7 @@ export class PerformanceOptimizer {
     }
 
     return new Promise<AxiosResponse>((resolve, reject) => {
+      const priority = (config as any).priority || 0
       const queuedRequest: QueuedRequest = {
         id: requestId,
         url,
@@ -199,7 +200,7 @@ export class PerformanceOptimizer {
         resolve,
         reject,
         timestamp: Date.now(),
-        priority: (config as any).priority || 0
+        priority
       }
 
       this.requestQueue.push(queuedRequest)

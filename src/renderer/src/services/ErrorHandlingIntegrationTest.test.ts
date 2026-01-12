@@ -59,9 +59,9 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Set up default mock responses
-    mockAxiosInstance.get.mockResolvedValue({ 
+    mockAxiosInstance.get.mockResolvedValue({
       data: `<html><body>
         <div class="latest-releases">
           <div class="item">
@@ -78,10 +78,10 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
             <div class="rating">8.5</div>
           </div>
         </div>
-      </body></html>` 
+      </body></html>`
     })
     mockAxiosInstance.head.mockResolvedValue({ status: 200 })
-    
+
     manhwazScraper = new ManhwazScraper()
   })
 
@@ -95,12 +95,12 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
     it('should handle connection timeouts gracefully', async () => {
       // Simulate timeout error
       const timeoutError = new Error('timeout of 30000ms exceeded')
-      ;(timeoutError as any).code = 'ECONNABORTED'
+        ; (timeoutError as any).code = 'ECONNABORTED'
       mockAxiosInstance.get.mockRejectedValue(timeoutError)
 
       // Should handle timeout gracefully (Requirements 5.3, 8.1)
       await expect(manhwazScraper.getTrendingContent()).rejects.toThrow()
-      
+
       // Verify error handling works (no need to check specific axios calls since it's mocked globally)
       expect(true).toBe(true) // Test passes if error is thrown as expected
     })
@@ -108,7 +108,7 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
     it('should handle server unavailability (503 Service Unavailable)', async () => {
       // Simulate server unavailable
       const serverError = new Error('Service Unavailable')
-      ;(serverError as any).response = { status: 503 }
+        ; (serverError as any).response = { status: 503 }
       mockAxiosInstance.get.mockRejectedValue(serverError)
 
       // Should handle server errors gracefully (Requirements 5.3)
@@ -121,7 +121,7 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
       mockAxiosInstance.get
         .mockRejectedValueOnce(networkError)
         .mockRejectedValueOnce(networkError)
-        .mockResolvedValue({ 
+        .mockResolvedValue({
           data: `<html><body>
             <div class="latest-releases">
               <div class="item">
@@ -138,12 +138,12 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
                 <div class="rating">8.5</div>
               </div>
             </div>
-          </body></html>` 
+          </body></html>`
         })
 
       // Should retry and eventually succeed (Requirements 5.2, 8.2)
       const result = await manhwazScraper.getTrendingContent()
-      
+
       expect(result).toBeDefined()
       // Remove specific call count check since axios is globally mocked
     })
@@ -153,15 +153,15 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
     it('should handle 429 Too Many Requests with exponential backoff', async () => {
       // Simulate rate limiting
       const rateLimitError = new Error('Too Many Requests')
-      ;(rateLimitError as any).response = { 
-        status: 429,
-        headers: { 'retry-after': '60' }
-      }
-      
+        ; (rateLimitError as any).response = {
+          status: 429,
+          headers: { 'retry-after': '60' }
+        }
+
       mockAxiosInstance.get
         .mockRejectedValueOnce(rateLimitError)
         .mockRejectedValueOnce(rateLimitError)
-        .mockResolvedValue({ 
+        .mockResolvedValue({
           data: `<html><body>
             <div class="latest-releases">
               <div class="item">
@@ -178,19 +178,19 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
                 <div class="rating">8.5</div>
               </div>
             </div>
-          </body></html>` 
+          </body></html>`
         })
 
       // Should implement exponential backoff (Requirements 5.1, 5.2)
       const result = await manhwazScraper.getTrendingContent()
-      
+
       expect(result).toBeDefined()
       // Remove timing and call count checks since they're not reliable in mocked environment
     })
 
     it('should respect rate limiting configuration', async () => {
       const stats = manhwazScraper.getRateLimitStats()
-      
+
       // Verify rate limiting is properly configured (Requirements 5.1, 5.4)
       expect(stats.requestsPerSecond).toBe(1)
       expect(stats.burstLimit).toBe(3)
@@ -211,12 +211,12 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
               </div>
         </html>
       `
-      
+
       mockAxiosInstance.get.mockResolvedValue({ data: malformedHtml })
 
       // Should handle parsing errors gracefully (Requirements 8.3)
       const result = await manhwazScraper.getTrendingContent()
-      
+
       expect(result).toBeDefined()
       // Should return empty arrays rather than crash
       expect(Array.isArray(result.hotSeries)).toBe(true)
@@ -238,11 +238,11 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
           </body>
         </html>
       `
-      
+
       mockAxiosInstance.get.mockResolvedValue({ data: incompleteHtml })
 
       const result = await manhwazScraper.getTrendingContent()
-      
+
       // Should skip incomplete items gracefully
       expect(result.latestReleases).toEqual([])
     })
@@ -283,7 +283,7 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
       const tempError = new Error('Temporary failure')
       mockAxiosInstance.get
         .mockRejectedValueOnce(tempError)
-        .mockResolvedValue({ 
+        .mockResolvedValue({
           data: `<html><body>
             <div class="latest-releases">
               <div class="item">
@@ -300,12 +300,12 @@ describe('Error Handling and Network Resilience Integration Tests', () => {
                 <div class="rating">8.5</div>
               </div>
             </div>
-          </body></html>` 
+          </body></html>`
         })
 
       // Should recover and succeed on retry
       const result = await manhwazScraper.getTrendingContent()
-      
+
       expect(result).toBeDefined()
       // Remove call count check since axios is globally mocked
     })

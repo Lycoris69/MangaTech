@@ -67,6 +67,7 @@ export interface UserLibrary {
 export interface DownloadTask {
   id: string
   seriesId: string
+  seriesTitle?: string
   chapterIds: string[]
   status: 'pending' | 'downloading' | 'completed' | 'failed'
   progress: number
@@ -87,6 +88,8 @@ export interface SeriesSearchResult {
   status: 'ongoing' | 'completed' | 'hiatus'
   rating: number
   sourceUrl: string
+  lastUpdated?: Date
+  latestChapter?: string
 }
 
 export interface TrendingContent {

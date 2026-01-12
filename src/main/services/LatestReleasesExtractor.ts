@@ -7,6 +7,17 @@ import { RateLimiter } from './RateLimiter'
 import { ContentValidator } from './ContentValidator'
 import { ScrapingError, ValidationError } from './WebScrapingService'
 
+/**
+ * LatestReleasesExtractor - Extracts latest releases from manhwaz.com homepage
+ * 
+ * This extractor handles:
+ * - Scraping the latest releases section from manhwaz.com homepage
+ * - Parsing release metadata (title, chapter, cover image, date)
+ * - Handling dynamic content loading for JavaScript-rendered elements
+ * - Caching mechanism for latest releases data
+ * 
+ * Requirements: 1.1, 1.2, 4.5
+ */
 export class LatestReleasesExtractor {
   private static logger: winston.Logger
   private axiosInstance: AxiosInstance
@@ -52,9 +63,7 @@ export class LatestReleasesExtractor {
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Referer': 'https://manhwaz.com/',
-        'Origin': 'https://manhwaz.com'
+        'Upgrade-Insecure-Requests': '1'
       }
     })
 
@@ -81,20 +90,25 @@ export class LatestReleasesExtractor {
 
   /**
    * Extract latest releases from manhwaz.com homepage
+   * Implements caching mechanism with 30-minute TTL
+   * 
+   * @returns Promise<LatestRelease[]> Array of latest releases
+   * @throws ScrapingError if extraction fails
+   * @throws ValidationError if extracted data is invalid
    */
   async extractLatestReleases(page: number = 1): Promise<LatestRelease[]> {
     const cacheKey = `latest-releases-page-${page}`
 
-    // Check cache first
+    // Check cache first (Requirement 1.3 - refresh within 30 minutes)
     const cached = this.getCachedData(cacheKey)
     if (cached) {
-      LatestReleasesExtractor.logger.info('Returning cached latest releases', { page, count: cached.length })
+      LatestReleasesExtractor.logger.info('Returning cached latest releases', { count: cached.length })
       return cached
     }
 
     try {
-      const homeUrl = this.urlManager.buildHomepageUrl(page)
-      LatestReleasesExtractor.logger.info('Extracting latest releases from homepage', { url: homeUrl, page })
+      const homeUrl = page > 1 ? this.urlManager.buildHomepageUrl(page) : this.urlManager.getBaseUrl()
+      LatestReleasesExtractor.logger.info('Extracting latest releases', { url: homeUrl, page })
 
       const response = await this.axiosInstance.get(homeUrl)
       const $ = cheerio.load(response.data)
@@ -104,14 +118,13 @@ export class LatestReleasesExtractor {
       // Validate extracted data
       const validationResult = this.contentValidator.validateLatestReleases(releases)
       if (!validationResult.isValid) {
-        throw new ValidationError(`Latest releases validation failed for page ${page}: ${validationResult.errors.join(', ')}`)
+        throw new ValidationError(`Latest releases validation failed: ${validationResult.errors.join(', ')}`)
       }
 
       // Cache the results
       this.setCachedData(cacheKey, releases)
 
       LatestReleasesExtractor.logger.info('Successfully extracted latest releases', {
-        page,
         count: releases.length,
         cached: true
       })
@@ -120,7 +133,6 @@ export class LatestReleasesExtractor {
 
     } catch (error) {
       LatestReleasesExtractor.logger.error('Failed to extract latest releases', {
-        page,
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
       })
@@ -129,27 +141,33 @@ export class LatestReleasesExtractor {
         throw error
       }
 
-      throw new ScrapingError(`Failed to extract latest releases for page ${page}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new ScrapingError(`Failed to extract latest releases: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   /**
    * Parse the latest releases section from the homepage HTML
+   * Handles dynamic content and various HTML structures
+   * 
+   * @param $ Cheerio instance loaded with homepage HTML
+   * @returns Promise<LatestRelease[]> Parsed latest releases
    */
-  private async parseLatestReleasesSection($: any): Promise<LatestRelease[]> {
+  private async parseLatestReleasesSection($: cheerio.CheerioAPI): Promise<LatestRelease[]> {
     const releases: LatestRelease[] = []
 
     // Common selectors for latest releases sections on manhwaz.com
     const possibleSelectors = [
       '.page-item-detail',
-      '.item.col-4.col-md-2',
-      '.item.col-md-2',
-      '.item.col-4',
       '.latest-releases .item',
-      '.recent-updates .item'
+      '.recent-updates .item',
+      '.new-chapters .chapter-item',
+      '.homepage-latest .manga-item',
+      '.latest-manga .manga-card',
+      '[data-section="latest"] .item',
+      '.content-homepage-item'
     ]
 
-    let releaseElements: any = null
+    let releaseElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the latest releases section
     for (const selector of possibleSelectors) {
@@ -160,7 +178,6 @@ export class LatestReleasesExtractor {
           selector,
           count: elements.length
         })
-        console.log(`[LatestReleasesExtractor] Found ${elements.length} elements with selector: ${selector}`);
         break
       }
     }
@@ -171,7 +188,7 @@ export class LatestReleasesExtractor {
     }
 
     // Parse each release item
-    releaseElements.each((index: number, element: any) => {
+    releaseElements.each((index, element) => {
       try {
         const release = this.parseReleaseItem($, $(element), index)
         if (release) {
@@ -190,18 +207,16 @@ export class LatestReleasesExtractor {
 
   /**
    * Parse individual release item from HTML element
+   * 
+   * @param $ Cheerio instance
+   * @param element Release item element
+   * @param index Item index for ID generation
+   * @returns LatestRelease | null Parsed release or null if parsing fails
    */
-  private parseReleaseItem($: any, element: any, index: number): LatestRelease | null {
+  private parseReleaseItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, index: number): LatestRelease | null {
     try {
       // Extract series title
-      const titleSelectors = [
-        '.title-item a',
-        '.post-title h3 a',
-        '.info-item a',
-        '.line-2 a',
-        'h3 a',
-        '.title a'
-      ]
+      const titleSelectors = ['.post-title a', 'h3 a', '.title a', '.manga-title a', 'a.title', '.series-title']
       let seriesTitle = ''
       let seriesUrl = ''
 
@@ -214,19 +229,22 @@ export class LatestReleasesExtractor {
         }
       }
 
+      // Fallback: search for any link if specific selectors fail
+      if (!seriesTitle) {
+        const linkElement = element.find('a[href*="/webtoon/"]').first()
+        if (linkElement.length > 0) {
+          seriesTitle = linkElement.text().trim()
+          seriesUrl = linkElement.attr('href') || ''
+        }
+      }
+
       if (!seriesTitle) {
         LatestReleasesExtractor.logger.debug('Could not extract series title', { index })
         return null
       }
 
       // Extract chapter information
-      const chapterSelectors = [
-        '.btn-link',
-        '.chapter-item .chapter a',
-        '.img-item .chapter a',
-        '.chapter a',
-        '.latest-chapter a'
-      ]
+      const chapterSelectors = ['.chapter a', '.chapter-title a', '.latest-chapter a', '.chapter-number']
       let chapterNumber = ''
       let chapterTitle = ''
       let chapterUrl = ''
@@ -256,7 +274,7 @@ export class LatestReleasesExtractor {
       }
 
       // Extract cover image
-      const imageSelectors = ['.img-item img', 'img', '.cover img', '.thumbnail img', '.manga-thumb img']
+      const imageSelectors = ['img', '.cover img', '.thumbnail img', '.manga-thumb img']
       let coverImageUrl = ''
 
       for (const selector of imageSelectors) {
@@ -291,20 +309,15 @@ export class LatestReleasesExtractor {
       const isNew = element.find('.new, .badge-new, .recent').length > 0 ||
         (Date.now() - publishDate.getTime()) < 24 * 60 * 60 * 1000 // Less than 24 hours old
 
-      // Generate unique ID based on series slug if possible
-      // FIXED: Use deterministic ID from URL slug (manhwaz-series-slug) to match SeriesDetailsExtractor
-      let id = `manhwaz-series-${seriesTitle.toLowerCase().replace(/[^a-z0-0]+/g, '-')}` // default fallback based on title slug
-      if (seriesUrl) {
-        const urlParts = seriesUrl.split('/').filter(p => p.length > 0)
-        const slug = urlParts[urlParts.length - 1]
-        if (slug) {
-          id = `manhwaz-series-${slug}`
-        }
-      }
-
-      // Ensure URLs are absolute
+      // Ensure URLs are absolute BEFORE extracting the ID
       seriesUrl = this.urlManager.resolveUrl(seriesUrl)
       chapterUrl = this.urlManager.resolveUrl(chapterUrl)
+
+      // Generate unique ID from URL slug
+      const slug = this.urlManager.extractSeriesId(seriesUrl)
+      const id = slug || `manhwaz-release-${Date.now()}-${index}`
+
+      console.log(`[LatestReleasesExtractor] seriesUrl=${seriesUrl}, slug=${slug}, id=${id}`)
 
       const release: LatestRelease = {
         id,
@@ -331,6 +344,10 @@ export class LatestReleasesExtractor {
 
   /**
    * Parse date string into Date object
+   * Handles various date formats commonly used on manga sites
+   * 
+   * @param dateText Date string to parse
+   * @returns Date | null Parsed date or null if parsing fails
    */
   private parseDate(dateText: string): Date | null {
     if (!dateText) return null
@@ -382,6 +399,9 @@ export class LatestReleasesExtractor {
 
   /**
    * Get cached data if it exists and is not expired
+   * 
+   * @param key Cache key
+   * @returns LatestRelease[] | null Cached data or null if not found/expired
    */
   private getCachedData(key: string): LatestRelease[] | null {
     const cached = this.cache.get(key)
@@ -398,6 +418,9 @@ export class LatestReleasesExtractor {
 
   /**
    * Set data in cache with current timestamp
+   * 
+   * @param key Cache key
+   * @param data Data to cache
    */
   private setCachedData(key: string, data: LatestRelease[]): void {
     this.cache.set(key, {
@@ -415,7 +438,9 @@ export class LatestReleasesExtractor {
   }
 
   /**
-   * Get placeholder image URL
+   * Get placeholder image URL for releases without cover images
+   * 
+   * @returns string Placeholder image URL
    */
   private getPlaceholderImage(): string {
     return '/placeholder-cover.jpg' // This should match the placeholder in public folder
@@ -423,6 +448,8 @@ export class LatestReleasesExtractor {
 
   /**
    * Get cache statistics
+   * 
+   * @returns Object with cache statistics
    */
   public getCacheStats(): { size: number, keys: string[] } {
     return {

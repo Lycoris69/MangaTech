@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LibraryService } from '../services/LibraryService';
 import { StorageService } from '../services/StorageService';
-import { NotificationService } from '../services/NotificationService';
-import { FavoriteSeries, DownloadedSeries, ReadingProgress, Series, UpdateNotification } from '../types';
+import { FavoriteSeries, DownloadedSeries, ReadingProgress, Series } from '../types';
 import { LoadingState, SkeletonCard } from '../components/LoadingSpinner';
 import { useNotifications } from '../components/NotificationSystem';
 import { errorService } from '../services/ErrorService';
 import { ErrorType } from '../types/errors';
 import OnlineReader from '../components/OnlineReader';
+import { SeriesCard } from '../components/SeriesCard';
 import './LibraryPage.css';
 
 interface LibraryPageProps {
@@ -20,7 +20,6 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
   const [downloads, setDownloads] = useState<DownloadedSeries[]>([]);
   const [readingProgress, setReadingProgress] = useState<ReadingProgress[]>([]);
   const [seriesMetadata, setSeriesMetadata] = useState<Series[]>([]);
-  const [notifications, setNotifications] = useState<UpdateNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,21 +29,11 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
 
   const libraryService = new LibraryService();
   const storageService = new StorageService();
-  const notificationService = new NotificationService();
   const { success: showSuccess, error: showError } = useNotifications();
   const navigate = useNavigate();
 
   useEffect(() => {
     loadLibraryData();
-    loadNotifications();
-
-    // Start periodic checking for updates
-    notificationService.startPeriodicChecking();
-
-    // Cleanup on unmount
-    return () => {
-      notificationService.stopPeriodicChecking();
-    };
   }, []);
 
   const loadLibraryData = async (isRefresh = false) => {
@@ -106,14 +95,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
     }
   };
 
-  const loadNotifications = async () => {
-    try {
-      const storedNotifications = await notificationService.getStoredNotifications();
-      setNotifications(storedNotifications);
-    } catch (err) {
-      console.error('Failed to load notifications:', err);
-    }
-  };
+
 
   const handleRemoveFavorite = async (seriesId: string) => {
     try {
@@ -148,6 +130,80 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
     }
   };
 
+  const handleDownloadSeries = async (seriesId: string) => {
+    try {
+      if (!window.electronAPI?.scraper || !window.electronAPI?.dialog) return;
+
+      const series = getSeriesById(seriesId);
+      if (!series) {
+        showError('Metadata missing', 'Cannot download a series without metadata.');
+        return;
+      }
+
+      const destPath = await window.electronAPI.dialog.selectDirectory();
+      if (!destPath) return;
+
+      showSuccess('Download started', `Targeting: ${series.title}`);
+
+      // 1. Fetch full details to get all chapters if not present
+      let fullSeries = series;
+      if (!series.chapters || series.chapters.length === 0) {
+        fullSeries = await window.electronAPI.scraper.getSeriesDetails(series.id);
+        await storageService.upsertSeries(fullSeries);
+      }
+
+      // 2. Trigger downloads for all chapters
+      if (fullSeries.chapters) {
+        for (const chapter of fullSeries.chapters) {
+          const idToDownload = (chapter as any).chapterUrl || (chapter as any).sourceUrl || chapter.id;
+
+          // We call it without awaiting individual completions to trigger the queue
+          window.electronAPI.scraper.downloadChapter({
+            seriesId: fullSeries.id,
+            chapterId: idToDownload,
+            seriesTitle: fullSeries.title,
+            chapterTitle: `Chapter ${chapter.chapterNumber}`,
+            basePath: destPath
+          }).then(async (result: { chapterPath: string, seriesPath: string }) => {
+            await libraryService.registerDownload(fullSeries.id, chapter.id, result);
+          }).catch(err => console.error(`Failed to download chapter ${chapter.id}:`, err));
+        }
+      }
+
+      // 3. Remove from favorites as requested
+      await handleRemoveFavorite(seriesId);
+
+      showSuccess('Serie queued', 'The series has been queued for download and removed from favorites.');
+    } catch (err) {
+      console.error('Failed to start series download:', err);
+      showError('Download Failed', 'An error occurred while starting the download.');
+    }
+  };
+
+  const handleScanDownloads = async () => {
+    try {
+      if (!window.electronAPI?.dialog) return;
+
+      const selectedPath = await window.electronAPI.dialog.selectDirectory();
+      if (!selectedPath) return;
+
+      setRefreshing(true);
+      const count = await libraryService.importLocalDownloads(selectedPath);
+      await loadLibraryData(true);
+
+      if (count > 0) {
+        showSuccess('Scan Complete', `Successfully imported ${count} series from local downloads.`);
+      } else {
+        showError('No Downloads Found', 'The selected directory does not appear to contain any recognized manga series or chapters. Ensure the folders contain image files.');
+      }
+    } catch (err) {
+      console.error('Failed to scan downloads:', err);
+      showError('Failed to scan downloads', 'An error occurred while scanning the directory.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const getSeriesById = (seriesId: string): Series | null => {
     return seriesMetadata.find(series => series.id === seriesId) || null;
   };
@@ -175,14 +231,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
     return 'Unknown Series';
   };
 
-  const dismissNotification = async (seriesId: string) => {
-    try {
-      await notificationService.removeNotification(seriesId);
-      setNotifications(prev => prev.filter(notif => notif.seriesId !== seriesId));
-    } catch (err) {
-      console.error('Failed to dismiss notification:', err);
-    }
-  };
+
 
   const handleReadSeries = async (seriesId: string) => {
     try {
@@ -198,8 +247,10 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
       // 2. If no progress, check if downloaded and start at first chapter
       const download = downloads.find(d => d.seriesId === seriesId);
       if (download && download.chapters.length > 0) {
+        // Extract IDs for sorting and reading
+        const chapterIds = download.chapters.map(c => typeof c === 'string' ? c : c.id);
         // Sort chapters to find the "first" one (heuristic: lowest number/name)
-        const sortedChapters = [...download.chapters].sort();
+        const sortedChapters = [...chapterIds].sort();
         setReadingSeriesId(seriesId);
         setReadingChapterId(sortedChapters[0]);
         setInitialPage(1);
@@ -228,6 +279,24 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
 
 
 
+  const getLatestChapter = (series: Series | null): string | undefined => {
+    if (!series || !series.chapters || series.chapters.length === 0) return undefined;
+
+    // Try to find the chapter with the highest number
+    try {
+      // Sort copies to avoid mutating original array
+      const sorted = [...series.chapters].sort((a, b) => {
+        const numA = parseFloat(a.chapterNumber) || 0;
+        const numB = parseFloat(b.chapterNumber) || 0;
+        return numB - numA;
+      });
+      return sorted[0]?.chapterNumber;
+    } catch (e) {
+      // Fallback if sorting fails (e.g. non-numeric chapters)
+      return series.chapters[series.chapters.length - 1]?.chapterNumber;
+    }
+  };
+
   return (
     <div className="library-page">
       <LoadingState
@@ -248,39 +317,19 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
             >
               {refreshing ? 'Refreshing...' : '🔄 Refresh'}
             </button>
+            <button
+              onClick={handleScanDownloads}
+              disabled={refreshing}
+              className="scan-button"
+            >
+              📂 Scan Downloads
+            </button>
           </div>
-          {notifications.length > 0 && (
-            <div className="notifications-banner">
-              <p>{notifications.length} series have new chapters available!</p>
-            </div>
-          )}
+
         </div>
 
         {/* Notifications Section */}
-        {notifications.length > 0 && (
-          <section className="notifications-section">
-            <h3>New Chapter Updates</h3>
-            <div className="notifications-list">
-              {notifications.map(notification => (
-                <div key={notification.seriesId} className="notification-item">
-                  <div className="notification-content">
-                    <h4>{notification.seriesTitle}</h4>
-                    <p>{notification.newChapterIds.length} new chapter(s) available</p>
-                    <span className="notification-date">
-                      {notification.notificationDate.toLocaleDateString()}
-                    </span>
-                  </div>
-                  <button
-                    className="dismiss-btn"
-                    onClick={() => dismissNotification(notification.seriesId)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+
 
         <div className="library-sections">
           {/* Favorites Section */}
@@ -297,43 +346,40 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                   const lastRead = getLastReadChapter(favorite.seriesId);
 
                   return (
-                    <div
-                      key={favorite.seriesId}
-                      className="series-card favorite"
-                      onClick={() => handleReadSeries(favorite.seriesId)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className="series-cover">
-                        {series?.coverImageUrl ? (
-                          <img src={series.coverImageUrl} alt={series.title} referrerPolicy="no-referrer" />
-                        ) : (
-                          <div className="placeholder-cover">No Image</div>
-                        )}
-                      </div>
-                      <div className="series-info">
-                        <h4>{getDisplayTitle(favorite.seriesId)}</h4>
-                        <p className="series-author">{series?.author || 'Unknown Author'}</p>
-                        <p className="series-status">{series?.status || 'Unknown Status'}</p>
-                        {lastRead && (
-                          <p className="last-read">
-                            Last read: Chapter {lastRead.chapterId.split('/').pop()?.replace('chapter-', '') || lastRead.chapterId}
-                          </p>
-                        )}
-                        <p className="date-added">
-                          Added: {favorite.dateAdded.toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="series-actions">
-                        <button
-                          className="remove-btn"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent navigation when clicking remove
-                            handleRemoveFavorite(favorite.seriesId);
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
+                    <div key={favorite.seriesId} className="series-card-wrapper">
+                      <SeriesCard
+                        id={favorite.seriesId}
+                        title={getDisplayTitle(favorite.seriesId)}
+                        coverImageUrl={series?.coverImageUrl || ''}
+                        totalChapters={series?.chapters?.length}
+                        lastUpdated={series?.lastUpdated ? new Date(series.lastUpdated) : undefined}
+                        status={series?.status}
+                        rating={series?.rating}
+                        onClick={() => handleReadSeries(favorite.seriesId)}
+                        actions={
+                          <div className="card-actions-row">
+                            <button
+                              className="download-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadSeries(favorite.seriesId);
+                              }}
+                            >
+                              Download
+                            </button>
+                            <button
+                              className="remove-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFavorite(favorite.seriesId);
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        }
+                        latestChapter={getLatestChapter(series)}
+                      />
                     </div>
                   );
                 })}
@@ -354,103 +400,90 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                   const series = getSeriesById(download.seriesId);
 
                   return (
-                    <div
-                      key={download.seriesId}
-                      className="series-card download"
-                      onClick={() => handleReadSeries(download.seriesId)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className="series-cover">
-                        {series?.coverImageUrl ? (
-                          <img src={series.coverImageUrl} alt={series.title} referrerPolicy="no-referrer" />
-                        ) : (
-                          <div className="placeholder-cover">No Image</div>
-                        )}
-                      </div>
-                      <div className="series-info">
-                        <h4>{getDisplayTitle(download.seriesId, download.downloadPath)}</h4>
-                        <p className="series-author">{series?.author || 'Metadata Missing'}</p>
-                        <p className="download-info">
-                          {download.chapters.length} chapter(s) downloaded
-                        </p>
-                        <p className="download-date">
-                          Downloaded: {download.downloadDate.toLocaleDateString()}
-                        </p>
-                        <p className="download-path" title={download.downloadPath}>
-                          Path: {download.downloadPath}
-                        </p>
-                      </div>
+                    <div key={download.seriesId} className="series-card-wrapper">
+                      <SeriesCard
+                        id={download.seriesId}
+                        title={getDisplayTitle(download.seriesId, download.downloadPath)}
+                        coverImageUrl={series?.coverImageUrl || ''}
+                        totalChapters={download.chapters.length}
+                        lastUpdated={download.downloadDate}
+                        status="Downloaded"
+                        onClick={() => handleReadSeries(download.seriesId)}
+                        customStat={`${download.chapters.length} DLs`}
+                      />
                     </div>
                   );
                 })}
               </div>
             )}
-          </section>
+          </section >
 
           {/* Continue Reading Section */}
-          <section className="reading-progress-section">
+          < section className="reading-progress-section" >
             <h3>Continue Reading</h3>
-            {readingProgress.length === 0 ? (
-              <div className="content-placeholder">
-                <p>No reading progress yet. Start reading some series!</p>
-              </div>
-            ) : (
-              <div className="progress-list">
-                {Array.from(
-                  readingProgress
-                    .sort((a, b) => b.lastReadDate.getTime() - a.lastReadDate.getTime())
-                    .reduce((map, item) => {
-                      if (!map.has(item.seriesId)) {
-                        map.set(item.seriesId, item);
-                      }
-                      return map;
-                    }, new Map<string, ReadingProgress>())
-                    .values()
-                )
-                  .slice(0, 3) // Show only 3 unique manga
-                  .map(progress => {
-                    const series = getSeriesById(progress.seriesId);
-                    const download = downloads.find(d => d.seriesId === progress.seriesId);
+            {
+              readingProgress.length === 0 ? (
+                <div className="content-placeholder">
+                  <p>No reading progress yet. Start reading some series!</p>
+                </div>
+              ) : (
+                <div className="progress-list">
+                  {Array.from(
+                    readingProgress
+                      .sort((a, b) => b.lastReadDate.getTime() - a.lastReadDate.getTime())
+                      .reduce((map, item) => {
+                        if (!map.has(item.seriesId)) {
+                          map.set(item.seriesId, item);
+                        }
+                        return map;
+                      }, new Map<string, ReadingProgress>())
+                      .values()
+                  )
+                    .slice(0, 3) // Show only 3 unique manga
+                    .map(progress => {
+                      const series = getSeriesById(progress.seriesId);
+                      const download = downloads.find(d => d.seriesId === progress.seriesId);
 
-                    return (
-                      <div
-                        key={`${progress.seriesId}-${progress.chapterId}`}
-                        className="progress-item clickable"
-                        onClick={() => handleReadChapterDirect(progress.seriesId, progress.chapterId, progress.pageNumber)}
-                      >
-                        <div className="progress-cover">
-                          {series?.coverImageUrl ? (
-                            <img src={series.coverImageUrl} alt={series.title} referrerPolicy="no-referrer" />
-                          ) : (
-                            <div className="placeholder-cover">No Image</div>
-                          )}
+                      return (
+                        <div
+                          key={`${progress.seriesId}-${progress.chapterId}`}
+                          className="progress-item clickable"
+                          onClick={() => handleReadChapterDirect(progress.seriesId, progress.chapterId, progress.pageNumber)}
+                        >
+                          <div className="progress-cover">
+                            {series?.coverImageUrl ? (
+                              <img src={series.coverImageUrl} alt={series.title} referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="placeholder-cover">No Image</div>
+                            )}
+                          </div>
+                          <div className="progress-info">
+                            <h4>{getDisplayTitle(progress.seriesId, download?.downloadPath)}</h4>
+                            <p>Chapter {progress.chapterId.split('/').pop()?.replace('chapter-', '') || progress.chapterId} - Page {progress.pageNumber}</p>
+                            <p className="last-read-date">
+                              Last read: {progress.lastReadDate.toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="progress-actions">
+                            <button
+                              className="continue-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReadChapterDirect(progress.seriesId, progress.chapterId, progress.pageNumber);
+                              }}
+                            >
+                              Continue Reading
+                            </button>
+                          </div>
                         </div>
-                        <div className="progress-info">
-                          <h4>{getDisplayTitle(progress.seriesId, download?.downloadPath)}</h4>
-                          <p>Chapter {progress.chapterId.split('/').pop()?.replace('chapter-', '') || progress.chapterId} - Page {progress.pageNumber}</p>
-                          <p className="last-read-date">
-                            Last read: {progress.lastReadDate.toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="progress-actions">
-                          <button
-                            className="continue-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleReadChapterDirect(progress.seriesId, progress.chapterId, progress.pageNumber);
-                            }}
-                          >
-                            Continue Reading
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </section>
-        </div>
-      </LoadingState>
+                      );
+                    })}
+                </div>
+              )
+            }
+          </section >
+        </div >
+      </LoadingState >
 
       {readingChapterId && (
         <OnlineReader
@@ -460,7 +493,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
           onClose={handleCloseReader}
         />
       )}
-    </div>
+    </div >
   );
 };
 

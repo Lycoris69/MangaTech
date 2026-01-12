@@ -7,6 +7,17 @@ import { RateLimiter } from './RateLimiter'
 import { ContentValidator } from './ContentValidator'
 import { ScrapingError, ValidationError } from './WebScrapingService'
 
+/**
+ * HotScansExtractor - Extracts trending manga content from manhwaz.com
+ * 
+ * This extractor handles:
+ * - Scraping the hot scans/trending section from manhwaz.com homepage
+ * - Extracting ranking data, view counts, and popularity metrics
+ * - Implementing content organization following manhwaz.com categorization
+ * - Adding validation for hot scans metadata completeness
+ * 
+ * Requirements: 2.1, 2.2, 6.4
+ */
 export class HotScansExtractor {
   private static logger: winston.Logger
   private axiosInstance: AxiosInstance
@@ -48,13 +59,11 @@ export class HotScansExtractor {
       timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Referer': 'https://manhwaz.com/',
-        'Origin': 'https://manhwaz.com'
+        'Upgrade-Insecure-Requests': '1'
       }
     })
 
@@ -81,11 +90,16 @@ export class HotScansExtractor {
 
   /**
    * Extract hot scans/trending content from manhwaz.com homepage
+   * Implements caching mechanism with 30-minute TTL
+   * 
+   * @returns Promise<HotScan[]> Array of hot scans/trending manga
+   * @throws ScrapingError if extraction fails
+   * @throws ValidationError if extracted data is invalid
    */
   async extractHotScans(): Promise<HotScan[]> {
     const cacheKey = 'hot-scans'
 
-    // Check cache first
+    // Check cache first (Requirement 2.3 - update when content changes)
     const cached = this.getCachedData(cacheKey)
     if (cached) {
       HotScansExtractor.logger.info('Returning cached hot scans', { count: cached.length })
@@ -133,19 +147,30 @@ export class HotScansExtractor {
 
   /**
    * Parse the hot scans/trending section from the homepage HTML
+   * Handles various HTML structures and ranking data
+   * 
+   * @param $ Cheerio instance loaded with homepage HTML
+   * @returns Promise<HotScan[]> Parsed hot scans
    */
-  private async parseHotScansSection($: any): Promise<HotScan[]> {
+  private async parseHotScansSection($: cheerio.CheerioAPI): Promise<HotScan[]> {
     const hotScans: HotScan[] = []
 
     // Common selectors for hot scans/trending sections on manhwaz.com
     const possibleSelectors = [
-      '#slide-top .item',
-      '.slide-home .item',
+      '.slide-home #slide-top .item',
       '.hot-manga .item',
-      '.trending-manga .item'
+      '.trending-manga .item',
+      '.popular-manga .manga-item',
+      '.hot-scans .manga-card',
+      '.most-popular .item',
+      '[data-section="trending"] .item',
+      '[data-section="popular"] .item',
+      '.homepage-trending .manga-item',
+      '.featured-manga .item',
+      '.top-rated .manga-card'
     ]
 
-    let hotScanElements: any = null
+    let hotScanElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the hot scans section
     for (const selector of possibleSelectors) {
@@ -166,7 +191,7 @@ export class HotScansExtractor {
     }
 
     // Parse each hot scan item
-    hotScanElements.each((index: number, element: any) => {
+    hotScanElements.each((index, element) => {
       try {
         const hotScan = this.parseHotScanItem($, $(element), index)
         if (hotScan) {
@@ -186,16 +211,16 @@ export class HotScansExtractor {
 
   /**
    * Parse individual hot scan item from HTML element
+   * 
+   * @param $ Cheerio instance
+   * @param element Hot scan item element
+   * @param index Item index for ranking and ID generation
+   * @returns HotScan | null Parsed hot scan or null if parsing fails
    */
-  private parseHotScanItem($: any, element: any, index: number): HotScan | null {
+  private parseHotScanItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, index: number): HotScan | null {
     try {
       // Extract series title
-      const titleSelectors = [
-        '.info-item .line-2 a',
-        '.info-item a',
-        'h3 a',
-        '.title a'
-      ]
+      const titleSelectors = ['.info-item .line-2 a', '.info-item .font-weight-bold a', 'h3 a', '.title a', '.manga-title a', 'a.title', '.series-title', '.name a']
       let seriesTitle = ''
       let seriesUrl = ''
 
@@ -208,13 +233,22 @@ export class HotScansExtractor {
         }
       }
 
+      // Fallback: search for any link if specific selectors fail
+      if (!seriesTitle) {
+        const linkElement = element.find('a[href*="/webtoon/"]').first()
+        if (linkElement.length > 0) {
+          seriesTitle = linkElement.text().trim()
+          seriesUrl = linkElement.attr('href') || ''
+        }
+      }
+
       if (!seriesTitle) {
         HotScansExtractor.logger.debug('Could not extract series title', { index })
         return null
       }
 
       // Extract cover image
-      const imageSelectors = ['img', '.cover img', '.thumbnail img', '.manga-thumb img', '.poster img']
+      const imageSelectors = ['.img-item img', 'img', '.cover img', '.thumbnail img', '.manga-thumb img', '.poster img']
       let coverImageUrl = ''
 
       for (const selector of imageSelectors) {
@@ -229,7 +263,7 @@ export class HotScansExtractor {
         }
       }
 
-      // Extract rating
+      // Extract rating (Requirements 2.2 - include rankings, view counts)
       const ratingSelectors = ['.rating', '.score', '.stars', '.rate', '.rating-value']
       let rating = 0
 
@@ -285,7 +319,7 @@ export class HotScansExtractor {
       for (const selector of genreSelectors) {
         const genreElements = element.find(selector)
         if (genreElements.length > 0) {
-          genreElements.find('a, span, .tag').each((_: any, genreEl: any) => {
+          genreElements.find('a, span, .tag').each((_, genreEl) => {
             const genre = $(genreEl).text().trim()
             if (genre && !genres.includes(genre)) {
               genres.push(genre)
@@ -329,19 +363,12 @@ export class HotScansExtractor {
         }
       }
 
-      // Generate unique ID based on series slug if possible
-      // FIXED: Use deterministic ID from URL slug (manhwaz-series-slug) to match SeriesDetailsExtractor
-      let id = `manhwaz-hotscan-${Date.now()}-${index}` // default fallback
-      if (seriesUrl) {
-        const urlParts = seriesUrl.split('/').filter(p => p.length > 0)
-        const slug = urlParts[urlParts.length - 1]
-        if (slug) {
-          id = `manhwaz-series-${slug}`
-        }
-      }
-
-      // Ensure URLs are absolute
+      // Ensure URLs are absolute BEFORE extracting the ID
       seriesUrl = this.urlManager.resolveUrl(seriesUrl)
+
+      // Generate unique ID from URL slug
+      const slug = this.urlManager.extractSeriesId(seriesUrl)
+      const id = slug || `manhwaz-hotscan-${Date.now()}-${index}`
 
       const hotScan: HotScan = {
         id,
@@ -369,6 +396,10 @@ export class HotScansExtractor {
 
   /**
    * Parse view count string into number
+   * Handles formats like "1.2K", "500M", "1.5B", etc.
+   * 
+   * @param viewText View count string to parse
+   * @returns number Parsed view count
    */
   private parseViewCount(viewText: string): number {
     if (!viewText) return 0
@@ -400,6 +431,9 @@ export class HotScansExtractor {
 
   /**
    * Get cached data if it exists and is not expired
+   * 
+   * @param key Cache key
+   * @returns HotScan[] | null Cached data or null if not found/expired
    */
   private getCachedData(key: string): HotScan[] | null {
     const cached = this.cache.get(key)
@@ -416,6 +450,9 @@ export class HotScansExtractor {
 
   /**
    * Set data in cache with current timestamp
+   * 
+   * @param key Cache key
+   * @param data Data to cache
    */
   private setCachedData(key: string, data: HotScan[]): void {
     this.cache.set(key, {
@@ -433,7 +470,9 @@ export class HotScansExtractor {
   }
 
   /**
-   * Get placeholder image URL
+   * Get placeholder image URL for hot scans without cover images
+   * 
+   * @returns string Placeholder image URL
    */
   private getPlaceholderImage(): string {
     return '/placeholder-cover.jpg' // This should match the placeholder in public folder
@@ -441,6 +480,8 @@ export class HotScansExtractor {
 
   /**
    * Get cache statistics
+   * 
+   * @returns Object with cache statistics
    */
   public getCacheStats(): { size: number, keys: string[] } {
     return {

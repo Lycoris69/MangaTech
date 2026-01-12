@@ -98,7 +98,7 @@ export class HotScansExtractor {
    */
   async extractHotScans(): Promise<HotScan[]> {
     const cacheKey = 'hot-scans'
-    
+
     // Check cache first (Requirement 2.3 - update when content changes)
     const cached = this.getCachedData(cacheKey)
     if (cached) {
@@ -114,7 +114,7 @@ export class HotScansExtractor {
       const $ = cheerio.load(response.data)
 
       const hotScans = await this.parseHotScansSection($)
-      
+
       // Validate extracted data
       const validationResult = this.contentValidator.validateHotScans(hotScans)
       if (!validationResult.isValid) {
@@ -123,8 +123,8 @@ export class HotScansExtractor {
 
       // Cache the results
       this.setCachedData(cacheKey, hotScans)
-      
-      HotScansExtractor.logger.info('Successfully extracted hot scans', { 
+
+      HotScansExtractor.logger.info('Successfully extracted hot scans', {
         count: hotScans.length,
         cached: true
       })
@@ -176,9 +176,9 @@ export class HotScansExtractor {
       const elements = $(selector)
       if (elements.length > 0) {
         hotScanElements = elements
-        HotScansExtractor.logger.debug('Found hot scans using selector', { 
-          selector, 
-          count: elements.length 
+        HotScansExtractor.logger.debug('Found hot scans using selector', {
+          selector,
+          count: elements.length
         })
         break
       }
@@ -396,7 +396,7 @@ export class HotScansExtractor {
     try {
       // Remove non-numeric characters except K, M, B, and decimal points
       const cleanText = viewText.replace(/[^\d.KMB]/gi, '').toUpperCase()
-      
+
       if (!cleanText) return 0
 
       // Handle suffixes

@@ -10,16 +10,16 @@ interface ReadingModeProps {
   initialPage?: number;
 }
 
-const ReadingMode: React.FC<ReadingModeProps> = ({ 
-  onExitReading, 
+const ReadingMode: React.FC<ReadingModeProps> = ({
+  onExitReading,
   chapterId,
   seriesId,
-  initialPage = 1 
+  initialPage = 1
 }) => {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
+
   const {
     currentState,
     isLoading: stateLoading,
@@ -38,7 +38,7 @@ const ReadingMode: React.FC<ReadingModeProps> = ({
         // Try to restore last reading position
         const lastPosition = await getLastReadingPosition(seriesId, chapterId);
         const startPage = lastPosition?.pageNumber || initialPage;
-        
+
         const state = await startSession(seriesId, chapterId, startPage);
         if (state) {
           setCurrentPage(state.pageNumber);
@@ -134,23 +134,24 @@ const ReadingMode: React.FC<ReadingModeProps> = ({
       <div className={`reading-mode ${isFullscreen ? 'fullscreen' : ''}`}>
         <OnlineReader
           chapterId={chapterId}
+          seriesId={seriesId}
           onClose={handleExitReading}
           onPageChange={handlePageChange}
           onZoomChange={handleZoomChange}
           initialPage={currentPage}
           initialZoom={zoomLevel}
         />
-        
+
         {/* Enhanced reading controls */}
         <div className="enhanced-reading-controls">
-          <button 
+          <button
             className="fullscreen-toggle"
             onClick={toggleFullscreen}
             title={isFullscreen ? "Exit fullscreen (F11)" : "Enter fullscreen (F11)"}
           >
             {isFullscreen ? '⛶' : '⛶'}
           </button>
-          
+
           {currentState && (
             <div className="reading-state-info">
               <span>Page {currentState.pageNumber}</span>
@@ -169,7 +170,7 @@ const ReadingMode: React.FC<ReadingModeProps> = ({
   return (
     <div className="reading-mode">
       <div className="reading-controls">
-        <button 
+        <button
           className="exit-reading-button"
           onClick={handleExitReading}
           title="Exit reading mode"
@@ -177,7 +178,7 @@ const ReadingMode: React.FC<ReadingModeProps> = ({
           ← Back to Navigation
         </button>
       </div>
-      
+
       <div className="reading-content">
         <div className="reading-placeholder">
           <h3>Reading Mode</h3>

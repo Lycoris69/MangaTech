@@ -29,26 +29,28 @@
 }
 
 .search-input-container {
-  display: flex;
   max-width: 600px;
   margin: 0 auto;
-  gap: 1rem;
   position: relative;
 }
 
 .search-input {
-  flex: 1;
-  padding: 1rem 1.5rem;
+  width: 100%;
+  padding: 1rem 6rem 1rem 1.5rem;
   border: 2px solid #e2e8f0;
   border-radius: 12px;
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  color: white !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.search-input:hover,
 .search-input:focus {
+  background: white;
+  color: #000000 !important;
   border-color: #4a9eff;
   box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
 }
@@ -59,29 +61,37 @@
 }
 
 .search-button {
-  padding: 1rem 2rem;
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%) !important;
+  padding: 0 1rem;
+  height: 2.5rem;
   background-color: #4a9eff;
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-width: 120px;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-button:hover:not(:disabled) {
   background-color: #357abd;
-  transform: translateY(-2px);
+  transform: translateY(-50%) scale(1.05) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .search-button:disabled {
   background-color: #a0aec0;
   cursor: not-allowed;
-  transform: none;
+  transform: translateY(-50%) !important;
 }
 
 .search-results {
@@ -109,121 +119,17 @@
 
 .results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 2rem;
+  padding: 1rem 0;
 }
 
-.series-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  cursor: pointer;
-  border: 1px solid #e2e8f0;
-}
+/* Redundant .series-card styles removed as they are now handled by SeriesCard.css */
 
-.series-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-  border-color: #4a9eff;
-}
-
-.series-cover {
-  position: relative;
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-}
-
-.series-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.series-card:hover .series-cover img {
-  transform: scale(1.05);
-}
-
-.series-overlay {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.series-rating {
-  background: rgba(243, 156, 18, 0.95);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  backdrop-filter: blur(10px);
-}
-
-.series-status {
-  background: rgba(39, 174, 96, 0.95);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  text-transform: capitalize;
-  backdrop-filter: blur(10px);
-}
-
-.series-info {
-  padding: 1.5rem;
-}
-
-.series-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #2d3748;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
-}
-
-.series-author {
-  font-size: 0.9rem;
-  color: #718096;
-  margin-bottom: 0.75rem;
-  font-weight: 500;
-}
-
-.series-synopsis {
-  font-size: 0.875rem;
-  color: #4a5568;
-  line-height: 1.5;
-  margin-bottom: 1rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.series-genres {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.genre-tag {
-  background: #edf2f7;
-  color: #4a5568;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border: 1px solid #e2e8f0;
+/* Override status transparency for Search Page */
+.search-page .series-status {
+  background: rgba(39, 174, 96, 1);
+  backdrop-filter: none;
 }
 
 /* No results state */
@@ -331,12 +237,13 @@
   }
 
   .search-input-container {
-    flex-direction: column;
     max-width: none;
   }
 
   .search-button {
-    width: 100%;
+    width: auto;
+    min-width: 60px;
+    height: 2rem;
   }
 
   .results-grid {

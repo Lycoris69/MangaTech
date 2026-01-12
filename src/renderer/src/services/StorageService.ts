@@ -205,7 +205,22 @@ export class StorageService {
   async getSeriesById(seriesId: string): Promise<Series | null> {
     try {
       const allSeries = await this.loadSeriesMetadata()
-      return allSeries.find(s => s.id === seriesId) || null
+
+      // Try exact match first
+      const exactMatch = allSeries.find(s => s.id === seriesId)
+      if (exactMatch) return exactMatch
+
+      // Fallback: If seriesId has a prefix (e.g. "ManhwaZ:slug"), try matching the slug
+      if (seriesId.includes(':')) {
+        const rawId = seriesId.split(':')[1]
+        const rawMatch = allSeries.find(s => s.id === rawId)
+        if (rawMatch) return rawMatch
+      }
+
+      // Reverse: If stored ID has a prefix but provided one doesn't
+      const matchedWithPrefix = allSeries.find(s => s.id.includes(':') && s.id.split(':')[1] === seriesId)
+      return matchedWithPrefix || null
+
     } catch (error) {
       throw new Error(`Failed to get series by ID: ${error}`)
     }

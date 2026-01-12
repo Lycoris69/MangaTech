@@ -5,6 +5,14 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { ScraperManager } from './services/ScraperManager';
 import { DownloadManager } from './services/DownloadManager';
+import { IpcManager } from './services/IpcManager';
+
+// Disable hardware acceleration to prevent GPU errors on Linux/Wayland
+// This must be called before the app is ready.
+app.disableHardwareAcceleration();
+
+// Ozone platform hints for better Linux/Wayland support
+app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
 
 class MangaTechApp {
   private mainWindow: electron.BrowserWindow | null = null;
@@ -20,6 +28,7 @@ class MangaTechApp {
       this.scraperManager,
       path.join(this.dataDir, 'download-tasks.json')
     );
+
     this.initializeApp();
   }
 
@@ -59,7 +68,7 @@ class MangaTechApp {
     });
 
     // Security: Prevent new window creation
-    app.on('web-contents-created', (_, contents) => {
+    app.on('web-contents-created', (_: electron.Event, contents: electron.WebContents) => {
       contents.setWindowOpenHandler(() => {
         return { action: 'deny' };
       });
@@ -93,20 +102,26 @@ class MangaTechApp {
         preload: path.join(__dirname, 'preload.js'),
       },
       titleBarStyle: 'default',
-      show: false, // Don't show until ready
+      show: true, // Show immediately on Linux to avoid ready-to-show delays
     });
+
+    console.log('MainWindow created');
 
     // Load the renderer
     if (process.env.NODE_ENV === 'development') {
-      this.mainWindow.loadURL('http://localhost:3000');
-      // DevTools disabled as requested by user
-      // this.mainWindow.webContents.openDevTools();
+      console.log('Loading development URL: http://localhost:3000');
+      this.mainWindow.loadURL('http://localhost:3000').catch(err => {
+        console.error('Failed to load URL:', err);
+      });
     } else {
-      this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+      this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html')).catch(err => {
+        console.error('Failed to load file:', err);
+      });
     }
 
-    // Show window when ready
+    // Show window when ready (as a backup if not already shown)
     this.mainWindow.once('ready-to-show', () => {
+      console.log('MainWindow ready-to-show');
       this.mainWindow?.show();
     });
 
@@ -117,7 +132,7 @@ class MangaTechApp {
   }
 
   private registerLocalProtocol(): void {
-    protocol.handle('manga-local', (request) => {
+    protocol.handle('manga-local', (request: Request) => {
       const url = request.url.replace('manga-local:///', '');
       return net.fetch('file:///' + decodeURIComponent(url));
     });
@@ -128,7 +143,7 @@ class MangaTechApp {
     // This bypasses hotlink protection (Requirement 5.4)
     session.defaultSession.webRequest.onBeforeSendHeaders(
       { urls: ['*://*.manhwaz.com/*', '*://manhwaz.com/*'] },
-      (details, callback) => {
+      (details: electron.OnBeforeSendHeadersListenerDetails, callback: (beforeSendResponse: electron.BeforeSendResponse) => void) => {
         const headers = { ...details.requestHeaders };
 
         // Add Referer if not present or incorrect
@@ -165,16 +180,8 @@ class MangaTechApp {
 
   private setupIpcHandlers(): void {
     // Example IPC handler for future use
-    ipcMain.handle('app:getVersion', () => {
-      return app.getVersion();
-    });
-
-    ipcMain.handle('app:getPlatform', () => {
-      return process.platform;
-    });
-
     // --- Storage Handlers ---
-    ipcMain.handle('storage:read', async (_, filename: string) => {
+    IpcManager.handle('storage:read', async (_, filename: string) => {
       try {
         const filePath = path.join(this.dataDir, filename);
         const data = await fs.readFile(filePath, 'utf-8');
@@ -185,7 +192,7 @@ class MangaTechApp {
       }
     });
 
-    ipcMain.handle('storage:write', async (_, filename: string, data: any) => {
+    IpcManager.handle('storage:write', async (_, filename: string, data: any) => {
       try {
         const filePath = path.join(this.dataDir, filename);
         await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
@@ -199,7 +206,7 @@ class MangaTechApp {
     // --- Scraper Handlers ---
 
     // Get trending content (Hot Series, Latest Releases, Most Viewed)
-    ipcMain.handle('scraper:getTrendingContent', async () => {
+    IpcManager.handle('scraper:getTrendingContent', async () => {
       try {
         return await this.scraperManager.getTrendingContent();
       } catch (error) {
@@ -209,7 +216,7 @@ class MangaTechApp {
     });
 
     // Get latest releases only (paged)
-    ipcMain.handle('scraper:getLatestReleases', async (_, page: number = 1) => {
+    IpcManager.handle('scraper:getLatestReleases', async (_, page: number = 1) => {
       try {
         return await this.scraperManager.getLatestReleases(page);
       } catch (error) {
@@ -219,7 +226,7 @@ class MangaTechApp {
     });
 
     // Get hot scans only
-    ipcMain.handle('scraper:getHotScans', async () => {
+    IpcManager.handle('scraper:getHotScans', async () => {
       try {
         const trending = await this.scraperManager.getTrendingContent();
         return trending.hotSeries;
@@ -230,7 +237,7 @@ class MangaTechApp {
     });
 
     // Search for series
-    ipcMain.handle('scraper:searchSeries', async (_, query: string) => {
+    IpcManager.handle('scraper:searchSeries', async (_, query: string) => {
       try {
         return await this.scraperManager.searchSeries(query);
       } catch (error) {
@@ -240,7 +247,7 @@ class MangaTechApp {
     });
 
     // Get series details
-    ipcMain.handle('scraper:getSeriesDetails', async (_, seriesUrl: string) => {
+    IpcManager.handle('scraper:getSeriesDetails', async (_, seriesUrl: string) => {
       try {
         // ScraperManager handles both IDs and full URLs
         return await this.scraperManager.getSeriesDetails(seriesUrl);
@@ -251,27 +258,73 @@ class MangaTechApp {
     });
 
     // Get chapter pages
-    ipcMain.handle('scraper:getChapterPages', async (_, chapterUrl: string) => {
+    IpcManager.handle('scraper:getChapterPages', async (_, chapterUrl: string, seriesId?: string) => {
       try {
-        // Attempt to load from local storage first
+        // 1. Attempt to load from DownloadManager tasks first
         const localPages = await this.downloadManager.getLocalChapterPages(chapterUrl);
         if (localPages && localPages.length > 0) {
-          console.log(`Serving local pages for: ${chapterUrl}`);
           return localPages;
         }
 
-        // Fallback to online scraper
+        // 2. Fallback: If seriesId is provided, try to resolve via user-library.json (for imported series)
+        if (seriesId) {
+          try {
+            const libraryPath = path.join(this.dataDir, 'user-library.json');
+            const libraryData = JSON.parse(await fs.readFile(libraryPath, 'utf-8'));
+            const download = libraryData.downloads?.find((d: any) => d.seriesId === seriesId);
+
+            if (download && download.downloadPath) {
+              const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+              const chapterTarget = normalize(path.basename(chapterUrl));
+
+              // Try direct match first
+              let chapterPath = path.join(download.downloadPath, path.basename(chapterUrl));
+
+              if (!(await fs.access(chapterPath).then(() => true).catch(() => false))) {
+                // Fuzzy match: Look for a folder that matches the normalized name
+                const subDirs = await fs.readdir(download.downloadPath, { withFileTypes: true });
+                const matchedDir = subDirs.find(d => d.isDirectory() && normalize(d.name) === chapterTarget);
+
+                if (matchedDir) {
+                  chapterPath = path.join(download.downloadPath, matchedDir.name);
+                } else {
+                  // Final attempt: Check if the chapterUrl itself is a subfolder
+                  const altPath = path.join(download.downloadPath, chapterUrl.replace(/^\/+/, ''));
+                  if (await fs.access(altPath).then(() => true).catch(() => false)) {
+                    chapterPath = altPath;
+                  }
+                }
+              }
+
+              if (await fs.access(chapterPath).then(() => true).catch(() => false)) {
+                const files = await fs.readdir(chapterPath);
+                const imageFiles = files
+                  .filter(f => /\.(jpe?g|png|webp|avif)$/i.test(f))
+                  .sort();
+
+                if (imageFiles.length > 0) {
+                  return imageFiles.map((file, index) => ({
+                    pageNumber: index + 1,
+                    imageUrl: `manga-local:///${path.join(chapterPath, file)}`,
+                    localPath: path.join(chapterPath, file)
+                  }));
+                }
+              }
+            }
+          } catch (fallbackError) {
+          }
+        }
+
+        // 3. Final Fallback to online scraper
         return await this.scraperManager.getChapterPages(chapterUrl);
       } catch (error) {
-        console.error(`Failed to get chapter pages for "${chapterUrl}":`, error);
         throw error;
       }
     });
 
     // --- Download Handlers ---
 
-    ipcMain.handle('dialog:selectDirectory', async () => {
-      console.log('[IPC] dialog:selectDirectory requested');
+    IpcManager.handle('dialog:selectDirectory', async () => {
       try {
         // On some Linux systems, passing the parent window can cause GLib/Gtk signal issues (e.g. no handler error).
         // Calling it without a parent can be more stable in those environments.
@@ -281,17 +334,14 @@ class MangaTechApp {
           buttonLabel: 'Select Folder'
         });
 
-        console.log('[IPC] dialog:selectDirectory result:', result.canceled ? 'Canceled' : result.filePaths[0]);
         if (result.canceled) return null;
         return result.filePaths[0];
       } catch (error) {
-        console.error('[IPC] dialog:selectDirectory error:', error);
         return null;
       }
     });
 
-    ipcMain.handle('scraper:downloadChapter', async (_, { seriesId, chapterId, seriesTitle, chapterTitle, basePath }) => {
-      console.log(`[IPC] scraper:downloadChapter: ${seriesTitle} - ${chapterTitle}`);
+    IpcManager.handle('scraper:downloadChapter', async (_, { seriesId, chapterId, seriesTitle, chapterTitle, basePath }) => {
       try {
         const result = await this.downloadManager.downloadChapter(
           seriesId,
@@ -300,20 +350,69 @@ class MangaTechApp {
           chapterTitle,
           basePath
         );
-        console.log(`[IPC] scraper:downloadChapter: Success: ${result}`);
         return result;
       } catch (error) {
-        console.error('[IPC] scraper:downloadChapter: Execution failed:', error);
         throw error;
       }
     });
 
-    ipcMain.handle('scraper:getDownloadTasks', async () => {
+    IpcManager.handle('scraper:getDownloadTasks', async () => {
       try {
         return await this.downloadManager.getTasks();
       } catch (error) {
-        console.error('[IPC] scraper:getDownloadTasks error:', error);
         throw error;
+      }
+    });
+
+    IpcManager.handle('scraper:scanLocalDownloads', async (_, basePath: string) => {
+      try {
+        const results: any[] = [];
+        const entries = await fs.readdir(basePath, { withFileTypes: true });
+
+        const isChapterLike = async (dirPath: string) => {
+          try {
+            const files = await fs.readdir(dirPath, { withFileTypes: true });
+            return files.some(f => f.isFile() && /\.(jpe?g|png|webp|avif)$/i.test(f.name));
+          } catch { return false; }
+        };
+
+        // Check if base folder itself is a series
+        const baseChapters: any[] = [];
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const p = path.join(basePath, entry.name);
+            if (await isChapterLike(p)) {
+              baseChapters.push({ id: entry.name, title: entry.name, path: p });
+            }
+          }
+        }
+        if (baseChapters.length > 0) {
+          results.push({ title: path.basename(basePath), path: basePath, chapters: baseChapters });
+        }
+
+        // Check subdirectories for series
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const seriesPath = path.join(basePath, entry.name);
+            if (baseChapters.some(c => c.path === seriesPath)) continue;
+
+            try {
+              const subEntries = await fs.readdir(seriesPath, { withFileTypes: true });
+              const chapters: any[] = [];
+              for (const sub of subEntries) {
+                if (sub.isDirectory() && await isChapterLike(path.join(seriesPath, sub.name))) {
+                  chapters.push({ id: sub.name, title: sub.name, path: path.join(seriesPath, sub.name) });
+                }
+              }
+              if (chapters.length > 0) {
+                results.push({ title: entry.name, path: seriesPath, chapters: chapters });
+              }
+            } catch { }
+          }
+        }
+        return results;
+      } catch (err) {
+        throw err;
       }
     });
   }

@@ -63,9 +63,7 @@ export class SeriesDetailsExtractor {
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Referer': 'https://manhwaz.com/',
-        'Origin': 'https://manhwaz.com'
+        'Upgrade-Insecure-Requests': '1'
       }
     })
 
@@ -104,8 +102,7 @@ export class SeriesDetailsExtractor {
       throw new ValidationError('Invalid series URL provided')
     }
 
-    // UPDATED: Added -v3 suffix to force cache invalidation
-    const cacheKey = `series-${seriesUrl}-v3`
+    const cacheKey = `series-${seriesUrl}`
 
     // Check cache first
     const cached = this.getCachedData(cacheKey)
@@ -162,7 +159,7 @@ export class SeriesDetailsExtractor {
    * @param sourceUrl Original URL for reference
    * @returns Promise<SeriesDetails> Parsed series details
    */
-  private async parseSeriesDetailsPage($: any, sourceUrl: string): Promise<SeriesDetails> {
+  private async parseSeriesDetailsPage($: cheerio.CheerioAPI, sourceUrl: string): Promise<SeriesDetails> {
     // Extract basic series information (Requirements 4.1, 4.2)
     const title = this.extractTitle($)
     const alternativeTitles = this.extractAlternativeTitles($)
@@ -205,13 +202,17 @@ export class SeriesDetailsExtractor {
   /**
    * Extract series title from various possible selectors
    */
-  private extractTitle($: any): string {
+  private extractTitle($: cheerio.CheerioAPI): string {
     const titleSelectors = [
       '.post-title h1',
-      '.post-title h3',
-      '.series-title',
-      'h1.title',
-      '.manga-title'
+      'h1.series-title',
+      'h1.manga-title',
+      '.series-info h1',
+      '.manga-info h1',
+      'h1',
+      '.title h1',
+      '.series-name',
+      '.manga-name'
     ]
 
     for (const selector of titleSelectors) {
@@ -231,7 +232,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract alternative titles
    */
-  private extractAlternativeTitles($: any): string[] {
+  private extractAlternativeTitles($: cheerio.CheerioAPI): string[] {
     const altTitleSelectors = [
       '.alternative-titles',
       '.alt-titles',
@@ -243,11 +244,11 @@ export class SeriesDetailsExtractor {
 
     for (const selector of altTitleSelectors) {
       const elements = $(selector)
-      elements.each((_: any, element: any) => {
+      elements.each((_, element) => {
         const text = $(element).text().trim()
         if (text) {
           // Split by common separators
-          const titles = text.split(/[;,\n]/).map((t: string) => t.trim()).filter((t: string) => t.length > 0)
+          const titles = text.split(/[;,\n]/).map(t => t.trim()).filter(t => t.length > 0)
           altTitles.push(...titles)
         }
       })
@@ -259,8 +260,9 @@ export class SeriesDetailsExtractor {
   /**
    * Extract author information
    */
-  private extractAuthor($: any): string {
+  private extractAuthor($: cheerio.CheerioAPI): string {
     const authorSelectors = [
+      '.author-content a',
       '.author',
       '.series-author',
       '.manga-author',
@@ -287,7 +289,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract artist information
    */
-  private extractArtist($: any): string {
+  private extractArtist($: cheerio.CheerioAPI): string {
     const artistSelectors = [
       '.artist',
       '.series-artist',
@@ -313,8 +315,9 @@ export class SeriesDetailsExtractor {
   /**
    * Extract synopsis/description
    */
-  private extractSynopsis($: any): string {
+  private extractSynopsis($: cheerio.CheerioAPI): string {
     const synopsisSelectors = [
+      '.summary__content p',
       '.description-summary .summary__content',
       '.synopsis',
       '.description',
@@ -328,25 +331,7 @@ export class SeriesDetailsExtractor {
     for (const selector of synopsisSelectors) {
       const element = $(selector).first()
       if (element.length > 0) {
-        let synopsis = element.text().trim()
-
-        // --- CLEANUP LOGIC ---
-
-        // 1. PRIMARY: Check for specific "The Summary is" delimiter and take everything after it
-        const summaryMatch = synopsis.match(/The Summary is\s*([\s\S]*)/i);
-        if (summaryMatch && summaryMatch[1]) {
-          synopsis = summaryMatch[1].trim();
-        } else {
-          // 2. FALLBACK: Remove specific SEO patterns
-
-          synopsis = synopsis.replace(/^.*?is a (Manga|Manhwa|Manhua).*?read them here\./is, '').trim();
-          synopsis = synopsis.replace(/^.*?is a (Manga|Manhwa|Manhua).*?comic site\./is, '').trim();
-          synopsis = synopsis.replace(/You are reading chapters on.*?(site|website|game|comic site)\./is, '').trim();
-        }
-
-        // 3. CLEANUP: Artifacts
-        synopsis = synopsis.replace(/Read\s+.*?\s+at\s+[\w\.]+/i, '').trim();
-
+        const synopsis = element.text().trim()
         if (synopsis && synopsis.length > 10) {
           SeriesDetailsExtractor.logger.debug('Extracted synopsis', {
             length: synopsis.length,
@@ -363,9 +348,10 @@ export class SeriesDetailsExtractor {
   /**
    * Extract and process cover image with quality preservation (Requirement 4.3)
    */
-  private extractCoverImage($: any): string {
+  private extractCoverImage($: cheerio.CheerioAPI): string {
     const imageSelectors = [
       '.summary_image img',
+      '.tab-summary .summary_image img',
       '.series-cover img',
       '.manga-cover img',
       '.cover-image img',
@@ -420,8 +406,9 @@ export class SeriesDetailsExtractor {
   /**
    * Extract genres
    */
-  private extractGenres($: any): string[] {
+  private extractGenres($: cheerio.CheerioAPI): string[] {
     const genreSelectors = [
+      '.genres-content a',
       '.genres a',
       '.genre-list a',
       '.tags a',
@@ -434,7 +421,7 @@ export class SeriesDetailsExtractor {
 
     for (const selector of genreSelectors) {
       const elements = $(selector)
-      elements.each((_: any, element: any) => {
+      elements.each((_, element) => {
         const genre = $(element).text().trim()
         if (genre && !genres.includes(genre)) {
           genres.push(genre)
@@ -453,7 +440,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract series status
    */
-  private extractStatus($: any): 'ongoing' | 'completed' | 'hiatus' {
+  private extractStatus($: cheerio.CheerioAPI): 'ongoing' | 'completed' | 'hiatus' {
     const statusSelectors = [
       '.status',
       '.series-status',
@@ -485,7 +472,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract rating
    */
-  private extractRating($: any): number {
+  private extractRating($: cheerio.CheerioAPI): number {
     const ratingSelectors = [
       '.rating',
       '.score',
@@ -515,7 +502,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract view count
    */
-  private extractViewCount($: any): number {
+  private extractViewCount($: cheerio.CheerioAPI): number {
     const viewSelectors = [
       '.views',
       '.view-count',
@@ -545,7 +532,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract last updated date
    */
-  private extractLastUpdated($: any): Date {
+  private extractLastUpdated($: cheerio.CheerioAPI): Date {
     const dateSelectors = [
       '.last-updated',
       '.updated-date',
@@ -571,11 +558,11 @@ export class SeriesDetailsExtractor {
   /**
    * Extract complete chapter list with information (Requirement 4.2)
    */
-  private async extractChapterList($: any): Promise<ChapterInfo[]> {
+  private async extractChapterList($: cheerio.CheerioAPI): Promise<ChapterInfo[]> {
     const chapters: ChapterInfo[] = []
 
     const chapterSelectors = [
-      '.wp-manga-chapter',
+      'li.wp-manga-chapter',
       '.chapter-list .chapter-item',
       '.chapters .chapter',
       '.episode-list .episode',
@@ -583,7 +570,7 @@ export class SeriesDetailsExtractor {
       '.chapter-entry'
     ]
 
-    let chapterElements: any = null
+    let chapterElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the chapter list
     for (const selector of chapterSelectors) {
@@ -604,7 +591,7 @@ export class SeriesDetailsExtractor {
     }
 
     // Parse each chapter item
-    chapterElements.each((index: number, element: any) => {
+    chapterElements.each((index, element) => {
       try {
         const chapter = this.parseChapterItem($, $(element), index)
         if (chapter) {
@@ -631,91 +618,61 @@ export class SeriesDetailsExtractor {
 
   /**
    * Parse individual chapter item from HTML element
+   * Optimized for Manhwaz.com structure to reduce DOM traversal
    */
-  private parseChapterItem($: any, element: any, index: number): ChapterInfo | null {
+  private parseChapterItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, index: number): ChapterInfo | null {
     try {
-      // Extract chapter title and URL
-      const titleSelectors = ['a', '.chapter-title a', '.chapter-name a', '.title']
-      let chapterTitle = ''
-      let chapterUrl = ''
-
-      for (const selector of titleSelectors) {
-        const titleElement = element.find(selector).first()
-        if (titleElement.length > 0) {
-          chapterTitle = titleElement.text().trim()
-          chapterUrl = titleElement.attr('href') || ''
-          break
-        }
-      }
-
-      if (!chapterTitle) {
-        SeriesDetailsExtractor.logger.debug('Could not extract chapter title', { index })
+      // For Manhwaz, the <a> tag is directly inside the <li>
+      const linkElement = element.find('a').first()
+      if (linkElement.length === 0) {
         return null
       }
 
-      // Extract chapter number from title
+      const chapterTitle = linkElement.text().trim()
+      const chapterUrl = linkElement.attr('href') || ''
+
+      if (!chapterTitle) {
+        return null
+      }
+
+      // Extract chapter number from title (optimized regex)
       let chapterNumber = ''
-      const chapterMatch = chapterTitle.match(/(?:chapter|ch\.?)\s*(\d+(?:\.\d+)?)/i)
+      const chapterMatch = chapterTitle.match(/(\d+(?:\.\d+)?)/i)
       if (chapterMatch) {
         chapterNumber = chapterMatch[1]
       } else {
-        // Try to extract number from any part of the title
-        const numberMatch = chapterTitle.match(/(\d+(?:\.\d+)?)/)
-        if (numberMatch) {
-          chapterNumber = numberMatch[1]
-        } else {
-          chapterNumber = (index + 1).toString()
-        }
+        chapterNumber = (index + 1).toString()
       }
 
-      // Extract publish date
-      const dateSelectors = ['.chapter-release-date i', '.date', '.publish-date', '.updated', '.time']
+      // For date, check the release date element (skip if not found - faster)
+      const dateElement = element.find('.chapter-release-date').first()
       let publishDate = new Date()
-
-      for (const selector of dateSelectors) {
-        const dateElement = element.find(selector).first()
-        if (dateElement.length > 0) {
-          const dateText = dateElement.text().trim()
-          const parsedDate = this.parseDate(dateText)
-          if (parsedDate) {
-            publishDate = parsedDate
-            break
-          }
+      if (dateElement.length > 0) {
+        const dateText = dateElement.text().trim()
+        const parsedDate = this.parseDate(dateText)
+        if (parsedDate) {
+          publishDate = parsedDate
         }
       }
 
-      // Generate unique ID - remove timestamp here too if possible, but chapters need to be unique
-      // For manhwaz, we use the path after the domain as a stable ID
-      let id = `chapter-${chapterNumber}-stable-${index}`
-      try {
-        const fullUrl = this.urlManager.resolveUrl(chapterUrl)
-        const parsedUrl = new URL(fullUrl)
-        const path = parsedUrl.pathname.replace(/^\/+|\/+$/g, '')
-        if (path) id = path
-      } catch (e) {
-        // Fallback to index-based ID if URL is invalid
-      }
-
-      // Ensure URL is absolute
-      chapterUrl = this.urlManager.resolveUrl(chapterUrl)
+      // Generate stable ID from chapter URL slug
+      const urlParts = chapterUrl.split('/')
+      const chapterSlug = urlParts[urlParts.length - 1] || `chapter-${chapterNumber}-${index}`
+      const id = chapterSlug
 
       const chapter: ChapterInfo = {
         id,
         chapterNumber,
         title: chapterTitle,
         publishDate,
-        chapterUrl,
-        pageCount: undefined // Will be extracted when chapter is accessed
+        chapterUrl: this.urlManager.resolveUrl(chapterUrl),
+        pageCount: undefined
       }
 
       return chapter
 
     } catch (error) {
-      SeriesDetailsExtractor.logger.warn('Error parsing chapter item', {
-        index,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      })
-      return null
+      return null // Fail silently for speed
     }
   }
 
@@ -777,14 +734,8 @@ export class SeriesDetailsExtractor {
   private generateSeriesId(sourceUrl: string): string {
     // Extract series identifier from URL
     const urlParts = sourceUrl.split('/')
-    // Filter out empty parts
-    const cleanParts = urlParts.filter(p => p.length > 0)
-
-    // Usually the slug is the last part
-    const seriesSlug = cleanParts[cleanParts.length - 1]
-
-    // Use consistent ID format without timestamp
-    return `manhwaz-series-${seriesSlug}`
+    const seriesSlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2]
+    return seriesSlug
   }
 
   /**

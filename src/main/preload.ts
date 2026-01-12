@@ -14,7 +14,7 @@ export interface ElectronAPI {
     getHotScans: () => Promise<any[]>;
     searchSeries: (query: string) => Promise<any[]>;
     getSeriesDetails: (seriesUrl: string) => Promise<any>;
-    getChapterPages: (chapterUrl: string) => Promise<any[]>;
+    getChapterPages: (chapterUrl: string, seriesId?: string) => Promise<any[]>;
     downloadChapter: (params: {
       seriesId: string;
       chapterId: string;
@@ -23,6 +23,7 @@ export interface ElectronAPI {
       basePath: string;
     }) => Promise<string>;
     getDownloadTasks: () => Promise<any[]>;
+    scanLocalDownloads: (basePath: string) => Promise<any[]>;
   };
   on: (channel: string, callback: (...args: any[]) => void) => () => void;
   dialog: {
@@ -30,34 +31,51 @@ export interface ElectronAPI {
   };
 }
 
+// Helper to log IPC calls in renderer
+const logIpc = async (channel: string, ...args: any[]) => {
+  console.debug(`[Renderer:IPC:Request] ${channel}`, ...args);
+  try {
+    const result = await ipcRenderer.invoke(channel, ...args);
+    console.debug(`[Renderer:IPC:Response] ${channel}`, result);
+    return result;
+  } catch (error) {
+    console.error(`[Renderer:IPC:Error] ${channel}`, error);
+    throw error;
+  }
+};
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 const electronAPI: ElectronAPI = {
-  getVersion: () => ipcRenderer.invoke('app:getVersion'),
-  getPlatform: () => ipcRenderer.invoke('app:getPlatform'),
+  getVersion: () => logIpc('app:getVersion'),
+  getPlatform: () => logIpc('app:getPlatform'),
   storage: {
-    read: (filename: string) => ipcRenderer.invoke('storage:read', filename),
-    write: (filename: string, data: any) => ipcRenderer.invoke('storage:write', filename, data),
+    read: (filename: string) => logIpc('storage:read', filename),
+    write: (filename: string, data: any) => logIpc('storage:write', filename, data),
   },
   scraper: {
-    getTrendingContent: () => ipcRenderer.invoke('scraper:getTrendingContent'),
-    getLatestReleases: (page?: number) => ipcRenderer.invoke('scraper:getLatestReleases', page),
-    getHotScans: () => ipcRenderer.invoke('scraper:getHotScans'),
-    searchSeries: (query: string) => ipcRenderer.invoke('scraper:searchSeries', query),
-    getSeriesDetails: (seriesUrl: string) => ipcRenderer.invoke('scraper:getSeriesDetails', seriesUrl),
-    getChapterPages: (chapterUrl: string) => ipcRenderer.invoke('scraper:getChapterPages', chapterUrl),
-    downloadChapter: (params: any) => ipcRenderer.invoke('scraper:downloadChapter', params),
-    getDownloadTasks: () => ipcRenderer.invoke('scraper:getDownloadTasks'),
+    getTrendingContent: () => logIpc('scraper:getTrendingContent'),
+    getLatestReleases: (page?: number) => logIpc('scraper:getLatestReleases', page),
+    getHotScans: () => logIpc('scraper:getHotScans'),
+    searchSeries: (query: string) => logIpc('scraper:searchSeries', query),
+    getSeriesDetails: (seriesUrl: string) => logIpc('scraper:getSeriesDetails', seriesUrl),
+    getChapterPages: (chapterUrl: string, seriesId?: string) => logIpc('scraper:getChapterPages', chapterUrl, seriesId),
+    downloadChapter: (params: any) => logIpc('scraper:downloadChapter', params),
+    getDownloadTasks: () => logIpc('scraper:getDownloadTasks'),
+    scanLocalDownloads: (basePath: string) => logIpc('scraper:scanLocalDownloads', basePath),
   },
   on: (channel: string, callback: (...args: any[]) => void) => {
-    const subscription = (_event: any, ...args: any[]) => callback(...args);
+    const subscription = (_event: any, ...args: any[]) => {
+      console.debug(`[Renderer:IPC:Event] ${channel}`, ...args);
+      callback(...args);
+    };
     ipcRenderer.on(channel, subscription);
     return () => {
       ipcRenderer.removeListener(channel, subscription);
     };
   },
   dialog: {
-    selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
+    selectDirectory: () => logIpc('dialog:selectDirectory'),
   },
 };
 

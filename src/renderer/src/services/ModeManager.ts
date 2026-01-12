@@ -44,7 +44,7 @@ export class ModeManager {
       mode: 'navigation',
       timestamp: new Date()
     }
-    
+
     this.initializePreferences()
   }
 
@@ -98,7 +98,7 @@ export class ModeManager {
     }
 
     this.preferences = { ...this.preferences!, ...updates }
-    
+
     try {
       await this.libraryService.updatePreferences(updates)
       this.notifyPreferencesChanged()
@@ -117,7 +117,7 @@ export class ModeManager {
     scrollPosition?: number
   }): Promise<ModeContext> {
     const previousContext = { ...this.currentContext }
-    
+
     // Preserve current reading context if requested
     let readingContext = previousContext.readingContext
     if (options?.preserveReading && this.currentContext.mode === 'reading') {
@@ -130,7 +130,7 @@ export class ModeManager {
           zoomLevel: currentReadingState.zoomLevel,
           scrollPosition: currentReadingState.scrollPosition
         }
-        
+
         // Save reading state before switching
         await this.readingStateService.saveReadingState()
       }
@@ -161,7 +161,7 @@ export class ModeManager {
     preserveNavigation?: boolean
   }): Promise<ModeContext> {
     const previousContext = { ...this.currentContext }
-    
+
     // Preserve current navigation context if requested
     let navigationContext = previousContext.navigationContext
     if (options.preserveNavigation && this.currentContext.mode === 'navigation') {

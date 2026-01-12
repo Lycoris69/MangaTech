@@ -102,8 +102,10 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
   }, [imageCache, loadingPages])
 
   const fetchAndAppendChapter = async (targetChapterId: string, shouldScroll = false, metadataList?: ChapterMetadata[]) => {
+    console.log(`[OnlineReader] fetchAndAppendChapter requested for: ${targetChapterId}`);
     try {
-      const pageUrls = await window.electronAPI.scraper.getChapterPages(targetChapterId)
+      const pageUrls = await window.electronAPI.scraper.getChapterPages(targetChapterId, seriesId)
+      console.log(`[OnlineReader] Received ${pageUrls.length} pages for: ${targetChapterId}`);
 
       const newChapter: LoadedChapter = {
         chapterId: targetChapterId,
@@ -143,21 +145,47 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
   }
 
   const loadNextChapter = async () => {
+    console.log(`[OnlineReader] loadNextChapter triggered. isFetchingNext: ${isFetchingNext}, allChapters: ${allChapters.length}`);
     if (isFetchingNext || allChapters.length === 0) return
 
     const lastLoadedId = loadedChapters[loadedChapters.length - 1]?.chapterId
+    console.log(`[OnlineReader] lastLoadedId: ${lastLoadedId}`);
     if (!lastLoadedId) return
 
-    const currentIndex = allChapters.findIndex(c => c.id === lastLoadedId)
+    // Robust ID matching: Try exact, then normalized basename
+    const normalize = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const getBase = (id: string) => {
+      if (!id) return '';
+      const parts = id.split('/');
+      return parts[parts.length - 1] || id;
+    };
+
+    const lastBaseNormalized = normalize(getBase(lastLoadedId));
+
+    let currentIndex = allChapters.findIndex(c => c.id === lastLoadedId);
+    if (currentIndex === -1) {
+      currentIndex = allChapters.findIndex(c => normalize(getBase(c.id)) === lastBaseNormalized);
+      if (currentIndex !== -1) {
+        console.log(`[OnlineReader] Lenient match found at index ${currentIndex} for ${lastLoadedId} -> ${allChapters[currentIndex].id}`);
+      }
+    }
+
+    console.log(`[OnlineReader] currentIndex: ${currentIndex} / ${allChapters.length - 1}`);
+
     // Chapters list is sorted ASC (1 -> 2 -> ...), so next is index + 1
     if (currentIndex >= 0 && currentIndex < allChapters.length - 1) {
       const nextChapter = allChapters[currentIndex + 1]
+      console.log(`[OnlineReader] Found next chapter: ${nextChapter.title} (ID: ${nextChapter.id})`);
       setIsFetchingNext(true)
       try {
         await fetchAndAppendChapter(nextChapter.id)
+      } catch (err) {
+        console.error('[OnlineReader] Failed to load next chapter:', err);
       } finally {
         setIsFetchingNext(false)
       }
+    } else {
+      console.log(`[OnlineReader] No next chapter to load or end reached.`);
     }
   }
 
@@ -283,7 +311,7 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
       if (entries[0].isIntersecting) {
         loadNextChapter()
       }
-    }, { root: pageContainerRef.current, rootMargin: '400px', threshold: 0.1 })
+    }, { root: pageContainerRef.current, rootMargin: '800px', threshold: 0.1 })
 
     observer.observe(loadingTriggerRef.current)
     return () => observer.disconnect()
@@ -299,14 +327,14 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
     const currentIndex = currentChapter.pages.findIndex(p => p.pageNumber === currentPage)
     if (currentIndex === -1) return
 
-    // Preload current page and next 5 pages across chapter boundaries
+    // Preload current page and next 15 pages across chapter boundaries
     let found = 0
     let cIdx = loadedChapters.findIndex(c => c.chapterId === activeChapterId)
     let pIdx = currentIndex // Start including the current page if not loaded
 
-    while (cIdx < loadedChapters.length && found < 6) {
+    while (cIdx < loadedChapters.length && found < 16) {
       const chapter = loadedChapters[cIdx]
-      while (pIdx < chapter.pages.length && found < 6) {
+      while (pIdx < chapter.pages.length && found < 16) {
         const page = chapter.pages[pIdx]
         if (!imageCache.has(`${page.chapterId}-${page.pageNumber}`)) {
           preloadImage(page.imageUrl, page.chapterId, page.pageNumber)
@@ -430,12 +458,19 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
             <div className="chapter-divider">
               <h3>{chapter.title}</h3>
             </div>
-            {chapter.pages.map((page) => {
+            {chapter.pages.map((page, idx) => {
               const key = `${page.chapterId}-${page.pageNumber}`
               const isLoaded = imageCache.has(key)
-              // STRICT LAZY LOADING: Only set src if loaded in state cache
-              // This prevents browser from auto-fetching all 50+ images at once
-              const url = isLoaded ? imageCache.get(key) : ''
+
+              // Hybrid Loading Strategy:
+              // 1. Current page + next 3 pages = eager + high priority
+              // 2. Local files = eager (instant anyway)
+              // 3. Everything else = lazy
+              const isNearby = (chapter.chapterId === activeChapterId &&
+                page.pageNumber >= currentPage &&
+                page.pageNumber <= currentPage + 3);
+              const isLocal = page.imageUrl.startsWith('manga-local://');
+              const shouldBeEager = isNearby || isLocal;
 
               return (
                 <div
@@ -445,20 +480,22 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
                   data-chapter={page.chapterId}
                   data-page={page.pageNumber}
                 >
-                  {!isLoaded && (
+                  {!isLoaded && !isLocal && (
                     <div className="page-loading-fallback">
                       <div className="spinner"></div>
                       <p>Page {page.pageNumber}</p>
                     </div>
                   )}
                   <img
-                    src={url || undefined}
+                    src={page.imageUrl}
                     alt={`${chapter.title} - Page ${page.pageNumber}`}
-                    className={`page-image ${zoomLevel !== 1 ? 'zoomed' : ''}`}
+                    className={`page-image ${zoomLevel !== 1 ? 'zoomed' : ''} ${isLoaded ? 'loaded' : ''}`}
                     referrerPolicy="no-referrer"
-                    loading="lazy"
+                    loading={shouldBeEager ? "eager" : "lazy"}
+                    // @ts-ignore - fetchpriority is a valid but newer attribute
+                    fetchpriority={shouldBeEager ? "high" : "auto"}
                     decoding="async"
-                    style={{ opacity: isLoaded ? 1 : 0 }}
+                    style={{ opacity: isLoaded || isLocal ? 1 : 0.3 }}
                   />
                 </div>
               )

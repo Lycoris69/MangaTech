@@ -1,4 +1,4 @@
-import { UserLibrary, FavoriteSeries, UpdateNotification, ReadingProgress } from '../types';
+import { UserLibrary, FavoriteSeries, ReadingProgress, Series } from '../types';
 import { StorageService } from './StorageService';
 
 export class LibraryService {
@@ -23,8 +23,7 @@ export class LibraryService {
 
       const newFavorite: FavoriteSeries = {
         seriesId,
-        dateAdded: new Date(),
-        notificationsEnabled: true
+        dateAdded: new Date()
       };
 
       library.favorites.push(newFavorite);
@@ -91,33 +90,7 @@ export class LibraryService {
     }
   }
 
-  /**
-   * Check for updates to favorite series (mock implementation)
-   */
-  async checkForUpdates(): Promise<UpdateNotification[]> {
-    try {
-      const favorites = await this.getFavorites();
-      const notifications: UpdateNotification[] = [];
 
-      // Mock implementation - in real app, this would check external sources
-      for (const favorite of favorites) {
-        // Simulate random updates for demonstration
-        if (Math.random() > 0.7) { // 30% chance of having updates
-          const notification: UpdateNotification = {
-            seriesId: favorite.seriesId,
-            seriesTitle: `Series ${favorite.seriesId}`, // Would be actual title
-            newChapterIds: [`${favorite.seriesId}-new-chapter-${Date.now()}`],
-            notificationDate: new Date()
-          };
-          notifications.push(notification);
-        }
-      }
-
-      return notifications;
-    } catch (error) {
-      throw new Error(`Failed to check for updates: ${error}`);
-    }
-  }
 
   /**
    * Mark a chapter as read
@@ -219,7 +192,7 @@ export class LibraryService {
   /**
    * Register a downloaded chapter in the library
    */
-  async registerDownload(seriesId: string, chapterId: string, downloadPath: string): Promise<void> {
+  async registerDownload(seriesId: string, chapterId: string, paths: { chapterPath: string, seriesPath: string }): Promise<void> {
     try {
       const library = await this.storageService.loadUserLibrary();
 
@@ -227,20 +200,148 @@ export class LibraryService {
       if (!downloadedSeries) {
         downloadedSeries = {
           seriesId,
-          downloadPath: downloadPath, // Store the path for reference
+          downloadPath: paths.seriesPath, // Use the proper series base path
           downloadDate: new Date(),
           chapters: []
         };
         library.downloads.push(downloadedSeries);
+      } else {
+        // Update series path if it was empty or wrong
+        downloadedSeries.downloadPath = paths.seriesPath;
       }
 
-      if (!downloadedSeries.chapters.includes(chapterId)) {
-        downloadedSeries.chapters.push(chapterId);
+      // Use findIndex or similar to handle both string and object IDs
+      const chapterIndex = downloadedSeries.chapters.findIndex(c =>
+        (typeof c === 'string' ? c : c.id) === chapterId
+      );
+
+      if (chapterIndex === -1) {
+        downloadedSeries.chapters.push({
+          id: chapterId,
+          path: paths.chapterPath
+        });
+      } else {
+        // Update path if it was just a string before
+        downloadedSeries.chapters[chapterIndex] = {
+          id: chapterId,
+          path: paths.chapterPath
+        };
       }
 
       await this.storageService.saveUserLibrary(library);
     } catch (error) {
       throw new Error(`Failed to register download: ${error}`);
+    }
+  }
+
+  /**
+   * Import locally downloaded series from a base path
+   */
+  async importLocalDownloads(basePath: string): Promise<number> {
+    console.log(`[LibraryService] Importing from: ${basePath}`);
+    try {
+      if (!window.electronAPI?.scraper) {
+        throw new Error('Electron API not available');
+      }
+
+      const scannedSeries = await window.electronAPI.scraper.scanLocalDownloads(basePath);
+      console.log(`[LibraryService] Scanned ${scannedSeries.length} series`);
+
+      const library = await this.storageService.loadUserLibrary();
+
+      for (const series of scannedSeries) {
+        console.log(`[LibraryService] Processing series: ${series.title}`);
+
+        // 1. Try to find if this series exists in metadata by title or ID
+        let seriesMetadata = await this.storageService.getSeriesById(series.title);
+
+        // 2. If not found locally, try to search online
+        if (!seriesMetadata) {
+          console.log(`[LibraryService] Metadata not found for ${series.title}, searching online...`);
+          try {
+            const searchResults = await window.electronAPI.scraper.searchSeries(series.title);
+            if (searchResults && searchResults.length > 0) {
+              // Exact match or first result
+              const match = searchResults.find(r => r.title.toLowerCase() === series.title.toLowerCase()) || searchResults[0];
+
+              // Fetch full details for the match
+              const fullDetails = await window.electronAPI.scraper.getSeriesDetails(match.id);
+              if (fullDetails) {
+                seriesMetadata = fullDetails;
+                console.log(`[LibraryService] Found online metadata for ${series.title} -> ${fullDetails.id}`);
+                await this.storageService.upsertSeries(fullDetails);
+              }
+            }
+          } catch (searchError) {
+            console.warn(`[LibraryService] Online search failed for ${series.title}:`, searchError);
+          }
+        }
+
+        // 3. Fallback: Create placeholder metadata if still not found
+        if (!seriesMetadata) {
+          console.log(`[LibraryService] Creating placeholder metadata for ${series.title}`);
+          const placeholder: Series = {
+            id: series.title, // Use title as ID for now
+            title: series.title,
+            author: 'Unknown Author',
+            synopsis: 'Imported from local downloads.',
+            coverImageUrl: '',
+            genres: [],
+            status: 'ongoing',
+            rating: 0,
+            totalChapters: series.chapters.length,
+            lastUpdated: new Date(),
+            sourceUrl: '',
+            chapters: series.chapters.map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              chapterNumber: c.title.replace(/[^0-9.]/g, '') || '0'
+            })) as any
+          };
+
+          seriesMetadata = placeholder;
+          await this.storageService.upsertSeries(seriesMetadata);
+        }
+
+        if (!seriesMetadata) continue;
+
+        const seriesId = seriesMetadata.id;
+
+        let downloadedSeries = library.downloads.find(d => d.seriesId === seriesId);
+        if (!downloadedSeries) {
+          downloadedSeries = {
+            seriesId,
+            downloadPath: series.path,
+            downloadDate: new Date(),
+            chapters: []
+          };
+          library.downloads.push(downloadedSeries);
+        } else {
+          // Update path if it changed
+          downloadedSeries.downloadPath = series.path;
+        }
+
+        // Add chapters
+        for (const chapter of series.chapters) {
+          const chapterIndex = downloadedSeries.chapters.findIndex(c =>
+            (typeof c === 'string' ? c : c.id) === chapter.id
+          );
+
+          if (chapterIndex === -1) {
+            downloadedSeries.chapters.push({
+              id: chapter.id,
+              path: chapter.path || '' // chapter.path should be available from scanLocalDownloads
+            });
+          }
+        }
+      }
+
+      await this.storageService.saveUserLibrary(library);
+      console.log('[LibraryService] Library saved successfully');
+      return scannedSeries.length;
+    } catch (error) {
+      console.error('[LibraryService] Import failed:', error);
+      throw new Error(`Failed to import local downloads: ${error}`);
     }
   }
 }

@@ -58,9 +58,7 @@ export class ChapterExtractor {
     this.axiosInstance = axios.create({
       timeout: 30000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Referer': 'https://manhwaz.com/',
-        'Origin': 'https://manhwaz.com'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
     })
 
@@ -162,7 +160,6 @@ export class ChapterExtractor {
 
     // Multiple selectors to handle different manhwaz.com page layouts
     const pageSelectors = [
-      '.chapter-img',         // Specific chapter image class
       '.reading-content img', // Main reading area images
       '.chapter-content img', // Alternative chapter content area
       '.page-break img',      // Page break separated images
@@ -268,47 +265,26 @@ export class ChapterExtractor {
   }
 
   /**
-   * Validate and process extracted page URLs (Requirement 7.3)
+   * Process extracted page URLs into PageData objects (Requirement 7.3)
+   * Note: Validation is intentionally skipped for performance.
+   * The frontend handles broken images gracefully with fallback indicators.
    * @param pageUrls - Array of page URL objects with alt text
-   * @returns Array of validated PageData objects
+   * @returns Array of PageData objects
    */
   private async validateAndProcessPages(pageUrls: Array<{ url: string, altText?: string }>): Promise<PageData[]> {
-    const validatedPages: PageData[] = []
+    // Skip HTTP validation for performance - just convert URLs to PageData
+    // This avoids making HEAD requests for every image which was the main bottleneck
+    const pages: PageData[] = pageUrls.map((pageUrlObj, i) => ({
+      pageNumber: i + 1,
+      imageUrl: pageUrlObj.url,
+      altText: pageUrlObj.altText
+    }))
 
-    for (let i = 0; i < pageUrls.length; i++) {
-      const pageUrlObj = pageUrls[i]
-      const imageUrl = pageUrlObj.url
+    ChapterExtractor.logger.debug('Processed page URLs without validation for speed', {
+      pageCount: pages.length
+    })
 
-      try {
-        // Validate image URL format and accessibility
-        if (await this.validateImageUrl(imageUrl)) {
-          // Get image dimensions if possible
-          const dimensions = await this.getImageDimensions(imageUrl)
-
-          const pageData: PageData = {
-            pageNumber: i + 1,
-            imageUrl: imageUrl,
-            altText: pageUrlObj.altText,
-            ...dimensions
-          }
-
-          validatedPages.push(pageData)
-        } else {
-          ChapterExtractor.logger.warn('Invalid or inaccessible page image', {
-            url: imageUrl,
-            pageNumber: i + 1
-          })
-        }
-      } catch (error) {
-        ChapterExtractor.logger.warn('Error validating page image', {
-          url: imageUrl,
-          pageNumber: i + 1,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
-    }
-
-    return validatedPages
+    return pages
   }
 
   /**

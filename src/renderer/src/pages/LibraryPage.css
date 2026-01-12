@@ -61,7 +61,7 @@
 .downloads-section,
 .reading-progress-section,
 .notifications-section {
-  background-color: #f8f9fa;
+  background-color: #2e4b68;
   border-radius: 8px;
   padding: 1.5rem;
   border: 1px solid #e9ecef;
@@ -136,9 +136,45 @@
 /* Series Grid */
 .series-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.card-actions-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.card-actions-row button {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.card-actions-row .download-btn {
+  background-color: #2196f3;
+  color: white;
+}
+
+.card-actions-row .download-btn:hover {
+  background-color: #1976d2;
+}
+
+.card-actions-row .remove-btn {
+  background-color: #ef5350;
+  color: white;
+}
+
+.card-actions-row .remove-btn:hover {
+  background-color: #d32f2f;
 }
 
 .series-card {
@@ -225,6 +261,7 @@
   gap: 0.5rem;
 }
 
+.download-btn,
 .remove-btn,
 .delete-btn {
   padding: 0.5rem 1rem;
@@ -251,6 +288,15 @@
 
 .delete-btn:hover {
   background-color: #e8690b;
+}
+
+.download-btn {
+  background-color: #4a9eff;
+  color: white;
+}
+
+.download-btn:hover {
+  background-color: #357abd;
 }
 
 /* Progress List */
@@ -333,7 +379,7 @@
   .library-page {
     padding: 1rem;
   }
-  
+
   .page-header h2 {
     font-size: 1.5rem;
   }
@@ -364,6 +410,7 @@
     text-align: center;
   }
 }
+
 /* Enhanced header styles */
 .page-header {
   display: flex;
@@ -400,9 +447,28 @@
   transform: translateY(-1px);
 }
 
-.refresh-button:disabled {
+.refresh-button:disabled,
+.scan-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.scan-button {
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.scan-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
 }
 
 .notifications-banner {
@@ -595,31 +661,31 @@
   .page-header {
     padding: 1.5rem;
   }
-  
+
   .header-actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .refresh-button {
     width: 100%;
     text-align: center;
   }
-  
+
   .progress-item {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .progress-cover {
     width: 80px;
     height: 100px;
   }
-  
+
   .series-actions {
     flex-direction: column;
   }
-  
+
   .remove-btn,
   .delete-btn,
   .continue-btn {
@@ -633,24 +699,24 @@
     background: #2d3748;
     border: 1px solid #4a5568;
   }
-  
+
   .notification-item {
     background: #2d3748;
     border-left-color: #f6e05e;
   }
-  
+
   .progress-item {
     background: #2d3748;
   }
-  
+
   .progress-info h4 {
     color: #e2e8f0;
   }
-  
+
   .progress-info p {
     color: #a0aec0;
   }
-  
+
   .notifications-banner {
     background: rgba(246, 224, 94, 0.2);
     border-color: rgba(246, 224, 94, 0.4);

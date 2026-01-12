@@ -25,11 +25,11 @@ export class SearchExample {
    */
   async basicSearch(query: string) {
     console.log(`Searching for: "${query}"`)
-    
+
     try {
       // Simple search that returns just the results array
       const results = await this.scraper.searchSeries(query)
-      
+
       console.log(`Found ${results.length} results:`)
       results.forEach((result, index) => {
         console.log(`${index + 1}. ${result.title} by ${result.author}`)
@@ -38,7 +38,7 @@ export class SearchExample {
         console.log(`   URL: ${result.sourceUrl}`)
         console.log()
       })
-      
+
       return results
     } catch (error) {
       console.error('Search failed:', error instanceof Error ? error.message : 'Unknown error')
@@ -55,16 +55,16 @@ export class SearchExample {
     if (options) {
       console.log('Options:', JSON.stringify(options, null, 2))
     }
-    
+
     try {
       // Detailed search that returns full SearchResponse
       const response = await this.scraper.searchSeriesWithDetails(query, options)
-      
+
       console.log(`Query: "${response.query}"`)
       console.log(`Total results: ${response.totalCount}`)
       console.log(`Has more: ${response.hasMore}`)
       console.log(`Returned: ${response.results.length} results`)
-      
+
       // Display results with full metadata
       response.results.forEach((result, index) => {
         console.log(`\n${index + 1}. ${result.title}`)
@@ -76,7 +76,7 @@ export class SearchExample {
         console.log(`   Synopsis: ${result.synopsis.substring(0, 100)}${result.synopsis.length > 100 ? '...' : ''}`)
         console.log(`   URL: ${result.sourceUrl}`)
       })
-      
+
       // Display suggestions if available
       if (response.suggestions.length > 0) {
         console.log('\nSuggestions:')
@@ -84,7 +84,7 @@ export class SearchExample {
           console.log(`- ${suggestion.suggestion} (${suggestion.type})`)
         })
       }
-      
+
       return response
     } catch (error) {
       console.error('Advanced search failed:', error instanceof Error ? error.message : 'Unknown error')
@@ -98,10 +98,10 @@ export class SearchExample {
    */
   async getSearchSuggestions(partialQuery: string) {
     console.log(`Getting suggestions for: "${partialQuery}"`)
-    
+
     try {
       const suggestions = await this.scraper.getAutocompleteSuggestions(partialQuery)
-      
+
       if (suggestions.length > 0) {
         console.log('Suggestions:')
         suggestions.forEach((suggestion, index) => {
@@ -110,7 +110,7 @@ export class SearchExample {
       } else {
         console.log('No suggestions available')
       }
-      
+
       return suggestions
     } catch (error) {
       console.error('Failed to get suggestions:', error instanceof Error ? error.message : 'Unknown error')
@@ -124,7 +124,7 @@ export class SearchExample {
    */
   async filteredSearch(query: string) {
     console.log(`Filtered search for: "${query}"`)
-    
+
     const options: SearchOptions = {
       limit: 5,
       sortBy: 'rating',
@@ -134,7 +134,7 @@ export class SearchExample {
         minRating: 7.0
       }
     }
-    
+
     return await this.advancedSearch(query, options)
   }
 
@@ -144,18 +144,18 @@ export class SearchExample {
    */
   async handleEmptyResults(query: string) {
     console.log(`Searching for potentially empty results: "${query}"`)
-    
+
     try {
       const response = await this.scraper.searchSeriesWithDetails(query)
-      
+
       if (response.results.length === 0) {
         // Use the SearchInterface to generate appropriate empty results message
         const searchInterface = this.scraper.getSearchInterface()
         const message = searchInterface.generateEmptyResultsMessage(query, response.suggestions)
-        
+
         console.log('Empty results message:')
         console.log(message)
-        
+
         return { isEmpty: true, message, suggestions: response.suggestions }
       } else {
         console.log(`Found ${response.results.length} results`)
@@ -174,17 +174,17 @@ export class SearchExample {
   async completeSearchWorkflow(userInput: string) {
     console.log('=== Complete Search Workflow ===')
     console.log(`User input: "${userInput}"`)
-    
+
     // Step 1: Get autocomplete suggestions as user types
     if (userInput.length >= 2) {
       console.log('\n1. Autocomplete suggestions:')
       await this.getSearchSuggestions(userInput)
     }
-    
+
     // Step 2: Perform the actual search
     console.log('\n2. Search results:')
     const response = await this.advancedSearch(userInput, { limit: 10 })
-    
+
     if (!response || response.results.length === 0) {
       // Step 3: Handle empty results
       console.log('\n3. Handling empty results:')
@@ -192,7 +192,7 @@ export class SearchExample {
     } else {
       console.log(`\n3. Search completed successfully with ${response.results.length} results`)
     }
-    
+
     return response
   }
 

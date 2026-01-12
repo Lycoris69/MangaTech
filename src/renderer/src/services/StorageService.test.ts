@@ -17,7 +17,7 @@ describe('StorageService', () => {
 
   beforeEach(async () => {
     storageService = new StorageService()
-    
+
     // Clean up test directory
     try {
       await fs.rm(testDataPath, { recursive: true, force: true })
@@ -152,7 +152,7 @@ describe('StorageService', () => {
       const updatedSeries = { ...series, totalChapters: 75, rating: 4.5 }
       await storageService.upsertSeries(updatedSeries)
       loadedSeries = await storageService.loadSeriesMetadata()
-      
+
       expect(loadedSeries).toHaveLength(1)
       expect(loadedSeries[0].totalChapters).toBe(75)
       expect(loadedSeries[0].rating).toBe(4.5)
@@ -174,7 +174,7 @@ describe('StorageService', () => {
       }
 
       await storageService.upsertSeries(series)
-      
+
       const foundSeries = await storageService.getSeriesById('series-1')
       expect(foundSeries).not.toBeNull()
       expect(foundSeries?.title).toBe('Test Manga')

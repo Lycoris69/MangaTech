@@ -243,11 +243,15 @@
 
 .page-loading-fallback {
   width: 100%;
-  padding: 40px;
+  aspect-ratio: 2 / 3;
+  /* Common manga page ratio to prevent layout shift */
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.3);
+  gap: 15px;
 }
 
 .page-image {
@@ -258,9 +262,13 @@
 
   display: block;
   image-rendering: -webkit-optimize-contrast;
-  transition: opacity 0.5s ease-in-out;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s ease;
 
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.page-image.loaded {
+  opacity: 1 !important;
 }
 
 /* Multi-Chapter Transitions */
@@ -269,6 +277,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 2000px;
+  /* Estimated chapter height */
 }
 
 .chapter-divider {

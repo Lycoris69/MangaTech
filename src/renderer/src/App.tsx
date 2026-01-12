@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { useSwipeNavigation } from './hooks/useSwipeNavigation';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import SeriesPage from './pages/SeriesPage';
@@ -62,6 +63,15 @@ const Navigation = () => (
   </nav>
 );
 
+// Controller component to handle swipe navigation within Router context
+const SwipeController = ({ children }: { children: React.ReactNode }) => {
+  useSwipeNavigation({
+    threshold: 100, // Distance to swipe
+    edgeOnly: false // Allow swipe from anywhere (as requested "as a whole")
+  });
+  return <>{children}</>;
+};
+
 function App() {
   // Force theme on component mount
   useEffect(() => {
@@ -70,36 +80,38 @@ function App() {
 
   return (
     <Router>
-      <div
-        className="App"
-        style={{
-          background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%) !important',
-          color: '#e0e1dd !important',
-          minHeight: '100vh',
-          fontFamily: "'Rajdhani', sans-serif",
-          position: 'relative'
-        }}
-      >
-        <Navigation />
-        <main
-          className="main-content"
+      <SwipeController>
+        <div
+          className="App"
           style={{
-            background: 'transparent',
-            color: '#e0e1dd',
-            flex: 1
+            background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%) !important',
+            color: '#e0e1dd !important',
+            minHeight: '100vh',
+            fontFamily: "'Rajdhani', sans-serif",
+            position: 'relative'
           }}
         >
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/series/:seriesId" element={<SeriesPage />} />
-            <Route path="/library" element={<LibraryPage />} />
-            <Route path="/downloads" element={<DownloadsPage />} />
-            <Route path="/read/:seriesId/:chapterId" element={<ReadingMode />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
+          <Navigation />
+          <main
+            className="main-content"
+            style={{
+              background: 'transparent',
+              color: '#e0e1dd',
+              flex: 1
+            }}
+          >
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/series/:seriesId" element={<SeriesPage />} />
+              <Route path="/library" element={<LibraryPage />} />
+              <Route path="/downloads" element={<DownloadsPage />} />
+              <Route path="/read/:seriesId/:chapterId" element={<ReadingMode />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </SwipeController>
     </Router>
   );
 }

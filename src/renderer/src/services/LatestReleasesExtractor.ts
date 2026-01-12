@@ -98,7 +98,7 @@ export class LatestReleasesExtractor {
    */
   async extractLatestReleases(): Promise<LatestRelease[]> {
     const cacheKey = 'latest-releases'
-    
+
     // Check cache first (Requirement 1.3 - refresh within 30 minutes)
     const cached = this.getCachedData(cacheKey)
     if (cached) {
@@ -114,7 +114,7 @@ export class LatestReleasesExtractor {
       const $ = cheerio.load(response.data)
 
       const releases = await this.parseLatestReleasesSection($)
-      
+
       // Validate extracted data
       const validationResult = this.contentValidator.validateLatestReleases(releases)
       if (!validationResult.isValid) {
@@ -123,8 +123,8 @@ export class LatestReleasesExtractor {
 
       // Cache the results
       this.setCachedData(cacheKey, releases)
-      
-      LatestReleasesExtractor.logger.info('Successfully extracted latest releases', { 
+
+      LatestReleasesExtractor.logger.info('Successfully extracted latest releases', {
         count: releases.length,
         cached: true
       })
@@ -173,9 +173,9 @@ export class LatestReleasesExtractor {
       const elements = $(selector)
       if (elements.length > 0) {
         releaseElements = elements
-        LatestReleasesExtractor.logger.debug('Found latest releases using selector', { 
-          selector, 
-          count: elements.length 
+        LatestReleasesExtractor.logger.debug('Found latest releases using selector', {
+          selector,
+          count: elements.length
         })
         break
       }
@@ -244,7 +244,7 @@ export class LatestReleasesExtractor {
         if (chapterElement.length > 0) {
           const chapterText = chapterElement.text().trim()
           chapterUrl = chapterElement.attr('href') || ''
-          
+
           // Extract chapter number from text like "Chapter 123" or "Ch. 123"
           const chapterMatch = chapterText.match(/(?:chapter|ch\.?)\s*(\d+(?:\.\d+)?)/i)
           if (chapterMatch) {
@@ -296,8 +296,8 @@ export class LatestReleasesExtractor {
       }
 
       // Check if this is a new release (usually indicated by a "new" badge or recent date)
-      const isNew = element.find('.new, .badge-new, .recent').length > 0 || 
-                   (Date.now() - publishDate.getTime()) < 24 * 60 * 60 * 1000 // Less than 24 hours old
+      const isNew = element.find('.new, .badge-new, .recent').length > 0 ||
+        (Date.now() - publishDate.getTime()) < 24 * 60 * 60 * 1000 // Less than 24 hours old
 
       // Generate unique ID
       const id = `manhwaz-release-${Date.now()}-${index}`

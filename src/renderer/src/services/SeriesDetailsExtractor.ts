@@ -103,7 +103,7 @@ export class SeriesDetailsExtractor {
     }
 
     const cacheKey = `series-${seriesUrl}`
-    
+
     // Check cache first
     const cached = this.getCachedData(cacheKey)
     if (cached) {
@@ -118,7 +118,7 @@ export class SeriesDetailsExtractor {
       const $ = cheerio.load(response.data)
 
       const seriesDetails = await this.parseSeriesDetailsPage($, seriesUrl)
-      
+
       // Validate extracted data (Requirement 4.4)
       const validationResult = this.contentValidator.validateSeriesDetails(seriesDetails)
       if (!validationResult.isValid) {
@@ -127,8 +127,8 @@ export class SeriesDetailsExtractor {
 
       // Cache the results
       this.setCachedData(cacheKey, seriesDetails)
-      
-      SeriesDetailsExtractor.logger.info('Successfully extracted series details', { 
+
+      SeriesDetailsExtractor.logger.info('Successfully extracted series details', {
         title: seriesDetails.title,
         chaptersCount: seriesDetails.chapters.length,
         cached: true
@@ -172,7 +172,7 @@ export class SeriesDetailsExtractor {
     const rating = this.extractRating($)
     const viewCount = this.extractViewCount($)
     const lastUpdated = this.extractLastUpdated($)
-    
+
     // Extract chapter list with complete information (Requirement 4.2)
     const chapters = await this.extractChapterList($)
 
@@ -329,9 +329,9 @@ export class SeriesDetailsExtractor {
       if (element.length > 0) {
         const synopsis = element.text().trim()
         if (synopsis && synopsis.length > 10) {
-          SeriesDetailsExtractor.logger.debug('Extracted synopsis', { 
-            length: synopsis.length, 
-            selector 
+          SeriesDetailsExtractor.logger.debug('Extracted synopsis', {
+            length: synopsis.length,
+            selector
           })
           return synopsis
         }
@@ -358,14 +358,14 @@ export class SeriesDetailsExtractor {
       const element = $(selector).first()
       if (element.length > 0) {
         let imageUrl = element.attr('src') || element.attr('data-src') || element.attr('data-lazy-src') || ''
-        
+
         if (imageUrl) {
           // Convert relative URLs to absolute
           imageUrl = this.urlManager.resolveUrl(imageUrl)
-          
+
           // Prefer higher quality versions if available
           imageUrl = this.optimizeImageUrl(imageUrl)
-          
+
           SeriesDetailsExtractor.logger.debug('Extracted cover image', { imageUrl, selector })
           return imageUrl
         }
@@ -420,7 +420,7 @@ export class SeriesDetailsExtractor {
           genres.push(genre)
         }
       })
-      
+
       if (genres.length > 0) {
         break // Use first successful selector
       }
@@ -446,7 +446,7 @@ export class SeriesDetailsExtractor {
       const element = $(selector).first()
       if (element.length > 0) {
         const statusText = element.text().trim().toLowerCase()
-        
+
         if (statusText.includes('completed') || statusText.includes('finished')) {
           return 'completed'
         }
@@ -478,7 +478,7 @@ export class SeriesDetailsExtractor {
       if (element.length > 0) {
         const ratingText = element.text().trim()
         const ratingMatch = ratingText.match(/(\d+(?:\.\d+)?)/);
-        
+
         if (ratingMatch) {
           const rating = parseFloat(ratingMatch[1])
           if (rating >= 0 && rating <= 10) {
@@ -508,7 +508,7 @@ export class SeriesDetailsExtractor {
       if (element.length > 0) {
         const viewText = element.text().trim()
         const viewMatch = viewText.match(/(\d+(?:,\d+)*)/);
-        
+
         if (viewMatch) {
           const viewCount = parseInt(viewMatch[1].replace(/,/g, ''))
           if (!isNaN(viewCount)) {
@@ -553,7 +553,7 @@ export class SeriesDetailsExtractor {
    */
   private async extractChapterList($: cheerio.CheerioAPI): Promise<ChapterInfo[]> {
     const chapters: ChapterInfo[] = []
-    
+
     const chapterSelectors = [
       '.chapter-list .chapter-item',
       '.chapters .chapter',
@@ -569,9 +569,9 @@ export class SeriesDetailsExtractor {
       const elements = $(selector)
       if (elements.length > 0) {
         chapterElements = elements
-        SeriesDetailsExtractor.logger.debug('Found chapters using selector', { 
-          selector, 
-          count: elements.length 
+        SeriesDetailsExtractor.logger.debug('Found chapters using selector', {
+          selector,
+          count: elements.length
         })
         break
       }

@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SeriesSearchResult } from '../types';
 import { SkeletonCard } from '../components/LoadingSpinner';
 import { useNotifications } from '../components/NotificationSystem';
-import { errorService } from '../services/ErrorService';
-import { ErrorType } from '../types/errors';
+import { SeriesCard } from '../components/SeriesCard';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
@@ -99,30 +98,35 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      <section className="content-section">
+      <section className="content-section new-releases-section">
         <h3 className="section-title">✨ New Releases</h3>
 
         <div className="series-grid">
           {releases.map((item, index) => {
+            const cardProps = {
+              id: item.id,
+              title: item.title,
+              coverImageUrl: item.coverImageUrl,
+              status: item.status,
+              rating: item.rating,
+              lastUpdated: item.lastUpdated, // Now available from SeriesSearchResult
+              latestChapter: item.latestChapter,
+              // Latest releases usually don't have totalChapters in the search result
+              // We'll show what we have, or could fetch details if critical
+              subtitle: item.genres?.slice(0, 2).join(', '),
+              onClick: () => handleSeriesClick(item)
+            };
+
             if (releases.length === index + 1) {
               return (
-                <div
-                  ref={lastElementRef}
-                  key={item.id}
-                  className="series-card"
-                  onClick={() => handleSeriesClick(item)}
-                >
-                  <SeriesCardContent item={item} />
+                <div ref={lastElementRef} key={item.id} className="card-wrapper">
+                  <SeriesCard {...cardProps} />
                 </div>
               );
             } else {
               return (
-                <div
-                  key={item.id}
-                  className="series-card"
-                  onClick={() => handleSeriesClick(item)}
-                >
-                  <SeriesCardContent item={item} />
+                <div key={item.id} className="card-wrapper">
+                  <SeriesCard {...cardProps} />
                 </div>
               );
             }
@@ -162,34 +166,5 @@ const HomePage: React.FC = () => {
   );
 };
 
-const SeriesCardContent: React.FC<{ item: SeriesSearchResult }> = ({ item }) => (
-  <>
-    <div className="series-cover">
-      <img
-        src={item.coverImageUrl}
-        alt={item.title}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.src = '/placeholder-cover.svg';
-          target.onerror = null;
-        }}
-      />
-      <div className="series-overlay">
-        {item.rating > 0 && <div className="series-rating">★ {item.rating.toFixed(1)}</div>}
-        <div className={`series-status status-${item.status.toLowerCase()}`}>{item.status}</div>
-      </div>
-    </div>
-    <div className="series-info">
-      <h4 className="series-title">{item.title}</h4>
-      <div className="series-genres">
-        {item.genres?.slice(0, 2).map((genre, index) => (
-          <span key={index} className="genre-tag">{genre}</span>
-        ))}
-      </div>
-    </div>
-  </>
-);
 
 export default HomePage;

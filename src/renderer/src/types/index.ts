@@ -31,14 +31,18 @@ export interface FavoriteSeries {
   seriesId: string
   dateAdded: Date
   lastReadChapter?: string
-  notificationsEnabled: boolean
+}
+
+export interface DownloadedChapter {
+  id: string
+  path: string
 }
 
 export interface DownloadedSeries {
   seriesId: string
   downloadPath: string
   downloadDate: Date
-  chapters: string[] // Array of chapter IDs
+  chapters: (string | DownloadedChapter)[] // Support both for backward compatibility
 }
 
 export interface ReadingProgress {
@@ -53,7 +57,6 @@ export interface UserPreferences {
   zoomLevel: number
   autoPreload: boolean
   downloadQuality: 'high' | 'medium' | 'low'
-  notificationsEnabled: boolean
 }
 
 export interface UserLibrary {
@@ -87,6 +90,8 @@ export interface SeriesSearchResult {
   status: 'ongoing' | 'completed' | 'hiatus'
   rating: number
   sourceUrl: string
+  lastUpdated?: Date
+  latestChapter?: string
 }
 
 export interface TrendingContent {
@@ -95,12 +100,7 @@ export interface TrendingContent {
   mostViewed: SeriesSearchResult[]
 }
 
-export interface UpdateNotification {
-  seriesId: string
-  seriesTitle: string
-  newChapterIds: string[]
-  notificationDate: Date
-}
+
 
 export interface PageUrl {
   pageNumber: number

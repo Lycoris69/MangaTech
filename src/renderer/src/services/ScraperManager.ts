@@ -38,14 +38,14 @@ export class ScraperManager {
       .forEach(source => {
         try {
           let scraper: WebScrapingService
-          
+
           // Use specialized scraper for ManhwaZ
           if (source.name === 'ManhwaZ') {
             scraper = new ManhwazScraper()
           } else {
             throw new Error(`Unsupported source: ${source.name}`)
           }
-          
+
           this.scrapers.set(source.name, scraper)
         } catch (error) {
           console.error(`Failed to initialize scraper for ${source.name}:`, error)
@@ -67,14 +67,14 @@ export class ScraperManager {
     for (const [sourceName, scraper] of this.scrapers) {
       try {
         const sourceResults = await scraper.searchSeries(query)
-        
+
         // Add source information to results
         const enrichedResults = sourceResults.map(result => ({
           ...result,
           id: `${sourceName}:${result.id}`, // Prefix with source name
           sourceUrl: result.sourceUrl
         }))
-        
+
         results.push(...enrichedResults)
       } catch (error) {
         console.error(`Search failed for source ${sourceName}:`, error)
@@ -119,7 +119,7 @@ export class ScraperManager {
     for (const [sourceName, scraper] of this.scrapers) {
       try {
         const trending = await scraper.getTrendingContent()
-        
+
         // Enrich results with source information
         const enrichTrendingSection = (series: SeriesSearchResult[]) =>
           series.map(s => ({
@@ -185,13 +185,13 @@ export class ScraperManager {
     if (parts.length >= 2) {
       return [parts[0], parts.slice(1).join(':')]
     }
-    
+
     // If no source prefix, use first available source
     const firstSource = this.scrapers.keys().next().value
     if (firstSource) {
       return [firstSource, seriesId]
     }
-    
+
     throw new ScrapingError('No sources available')
   }
 
@@ -202,7 +202,7 @@ export class ScraperManager {
 
     for (const result of results) {
       const normalizedTitle = result.title.toLowerCase().replace(/[^\w\s]/g, '').trim()
-      
+
       if (!seen.has(normalizedTitle)) {
         seen.add(normalizedTitle)
         deduplicated.push(result)
@@ -217,14 +217,14 @@ export class ScraperManager {
     if (config.enabled) {
       try {
         let scraper: WebScrapingService
-        
+
         // Use specialized scraper for ManhwaZ
         if (config.name === 'ManhwaZ') {
           scraper = new ManhwazScraper()
         } else {
           throw new Error(`Unsupported source: ${config.name}`)
         }
-        
+
         this.scrapers.set(config.name, scraper)
         this.sources.push(config)
         this.sources.sort((a, b) => a.priority - b.priority)
@@ -243,7 +243,7 @@ export class ScraperManager {
         console.error(`Failed to cleanup scraper for ${sourceName}:`, error)
       })
     }
-    
+
     this.scrapers.delete(sourceName)
     this.sources = this.sources.filter(s => s.name !== sourceName)
   }

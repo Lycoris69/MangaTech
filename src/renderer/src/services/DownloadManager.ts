@@ -65,18 +65,18 @@ export class DownloadManager extends EventEmitter {
   async initialize(): Promise<void> {
     try {
       const tasks = await this.storageService.loadDownloadTasks()
-      
+
       // Load tasks into memory and resume incomplete ones
       for (const task of tasks) {
         // Resume incomplete downloads if enabled
-        if (this.downloadOptions.resumeIncomplete && 
-            task.status === 'downloading') {
+        if (this.downloadOptions.resumeIncomplete &&
+          task.status === 'downloading') {
           task.status = 'pending' // Reset downloading tasks to pending for retry
         }
-        
+
         this.downloadTasks.set(task.id, task)
       }
-      
+
       // Start processing queue if there are pending tasks
       if (this.hasQueuedTasks()) {
         // Use setTimeout to allow initialization to complete first
@@ -94,7 +94,7 @@ export class DownloadManager extends EventEmitter {
     try {
       // Get series details to ensure we have all chapters
       const seriesDetails = await this.scraperManager.getSeriesDetails(series.id)
-      
+
       // Create chapter list - for now we'll simulate chapter data
       // In a real implementation, this would come from the scraper
       const chapters: Chapter[] = []
@@ -122,8 +122,8 @@ export class DownloadManager extends EventEmitter {
    * Download selected chapters
    */
   async downloadSelectedChapters(
-    series: Series, 
-    chapterIds: string[], 
+    series: Series,
+    chapterIds: string[],
     options?: Partial<DownloadOptions>
   ): Promise<string> {
     try {
@@ -137,13 +137,13 @@ export class DownloadManager extends EventEmitter {
    * Create a new download task
    */
   private async createDownloadTask(
-    series: Series, 
-    chapterIds: string[], 
+    series: Series,
+    chapterIds: string[],
     options: DownloadOptions
   ): Promise<string> {
     const taskId = `download-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     const seriesPath = await this.fileSystemService.getSeriesPath(series)
-    
+
     const task: DownloadTask = {
       id: taskId,
       seriesId: series.id,
@@ -157,14 +157,14 @@ export class DownloadManager extends EventEmitter {
 
     this.downloadTasks.set(taskId, task)
     await this.saveDownloadTasks()
-    
+
     this.emit('queueUpdated', this.getQueueLength())
-    
+
     // Start processing if not already running
     if (!this.isProcessing) {
       this.processQueue()
     }
-    
+
     return taskId
   }
 
@@ -173,9 +173,9 @@ export class DownloadManager extends EventEmitter {
    */
   private async processQueue(): Promise<void> {
     if (this.isProcessing) return
-    
+
     this.isProcessing = true
-    
+
     try {
       while (this.hasQueuedTasks() && this.activeDownloads.size < this.maxConcurrentDownloads) {
         const task = this.getNextQueuedTask()
@@ -201,11 +201,11 @@ export class DownloadManager extends EventEmitter {
   private async processDownloadTask(task: DownloadTask): Promise<void> {
     const abortController = new AbortController()
     this.activeDownloads.set(task.id, abortController)
-    
+
     try {
       task.status = 'downloading'
       await this.saveDownloadTasks()
-      
+
       const series = await this.storageService.getSeriesById(task.seriesId)
       if (!series) {
         throw new Error(`Series not found: ${task.seriesId}`)
@@ -213,29 +213,29 @@ export class DownloadManager extends EventEmitter {
 
       // Create series directory
       await this.fileSystemService.createSeriesDirectory(series)
-      
+
       let completedChapters = 0
       const totalChapters = task.chapterIds.length
       const startTime = Date.now()
-      
+
       for (const chapterId of task.chapterIds) {
         if (abortController.signal.aborted) {
           throw new Error('Download cancelled')
         }
-        
+
         try {
           await this.downloadChapter(series, chapterId, task.id, abortController.signal)
           completedChapters++
-          
+
           // Update progress
           const progress = (completedChapters / totalChapters) * 100
           const elapsedTime = Date.now() - startTime
           const estimatedTotal = (elapsedTime / completedChapters) * totalChapters
           const estimatedTimeRemaining = Math.max(0, estimatedTotal - elapsedTime)
-          
+
           task.progress = progress
           task.estimatedTimeRemaining = estimatedTimeRemaining
-          
+
           this.emit('progress', {
             taskId: task.id,
             seriesId: task.seriesId,
@@ -244,33 +244,33 @@ export class DownloadManager extends EventEmitter {
             estimatedTimeRemaining,
             status: 'downloading'
           })
-          
+
           await this.saveDownloadTasks()
         } catch (error) {
           console.error(`Failed to download chapter ${chapterId}:`, error)
           // Continue with other chapters instead of failing the entire task
         }
       }
-      
+
       // Mark task as completed
       task.status = 'completed'
       task.progress = 100
       task.estimatedTimeRemaining = 0
       task.completedAt = new Date()
-      
+
       await this.saveDownloadTasks()
       this.emit('taskCompleted', task.id)
-      
+
     } catch (error) {
       task.status = 'failed'
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      
+
       await this.saveDownloadTasks()
       this.emit('taskFailed', task.id, errorMessage)
-      
+
     } finally {
       this.activeDownloads.delete(task.id)
-      
+
       // Continue processing queue
       if (this.hasQueuedTasks()) {
         setTimeout(() => this.processQueue(), 1000)
@@ -284,8 +284,8 @@ export class DownloadManager extends EventEmitter {
    * Download a single chapter
    */
   private async downloadChapter(
-    series: Series, 
-    chapterId: string, 
+    series: Series,
+    chapterId: string,
     taskId: string,
     signal: AbortSignal
   ): Promise<void> {
@@ -301,7 +301,7 @@ export class DownloadManager extends EventEmitter {
         isDownloaded: false,
         sourceUrl: `${series.sourceUrl}/${chapterId}`
       }
-      
+
       // Check if chapter is already downloaded and we're not overwriting
       if (!this.downloadOptions.overwriteExisting) {
         const isDownloaded = await this.fileSystemService.isChapterDownloaded(series, chapter)
@@ -309,26 +309,26 @@ export class DownloadManager extends EventEmitter {
           return // Skip already downloaded chapter
         }
       }
-      
+
       // Create chapter directory
       const chapterPath = await this.fileSystemService.createChapterDirectory(series, chapter)
-      
+
       // Get chapter pages from scraper
       const pages = await this.scraperManager.getChapterPages(chapterId)
-      
+
       // Download each page
       for (let i = 0; i < pages.length; i++) {
         if (signal.aborted) {
           throw new Error('Download cancelled')
         }
-        
+
         const page = pages[i]
         const pageFilePath = this.fileSystemService.getPageFilePath(
-          chapterPath, 
-          page.pageNumber, 
+          chapterPath,
+          page.pageNumber,
           this.getImageExtension(page.imageUrl)
         )
-        
+
         // Check if page already exists and we're resuming
         if (this.downloadOptions.resumeIncomplete) {
           try {
@@ -338,9 +338,9 @@ export class DownloadManager extends EventEmitter {
             // Page doesn't exist, continue with download
           }
         }
-        
+
         await this.downloadImage(page.imageUrl, pageFilePath, signal)
-        
+
         // Emit page progress
         this.emit('progress', {
           taskId,
@@ -353,11 +353,11 @@ export class DownloadManager extends EventEmitter {
           status: 'downloading'
         })
       }
-      
+
       // Mark chapter as downloaded
       chapter.isDownloaded = true
       chapter.localPath = chapterPath
-      
+
     } catch (error) {
       throw new Error(`Failed to download chapter ${chapterId}: ${error}`)
     }
@@ -369,19 +369,19 @@ export class DownloadManager extends EventEmitter {
   private async downloadImage(imageUrl: string, filePath: string, signal: AbortSignal): Promise<void> {
     try {
       const response = await fetch(imageUrl, { signal })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-      
+
       const buffer = await response.arrayBuffer()
-      
+
       // Ensure directory exists before writing file
       const dir = path.dirname(filePath)
       await fs.mkdir(dir, { recursive: true })
-      
+
       await fs.writeFile(filePath, Buffer.from(buffer))
-      
+
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Download cancelled')
@@ -397,7 +397,7 @@ export class DownloadManager extends EventEmitter {
     const url = new URL(imageUrl)
     const pathname = url.pathname
     const extension = path.extname(pathname).toLowerCase()
-    
+
     // Default to jpg if no extension or unknown extension
     const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
     return validExtensions.includes(extension) ? extension.substring(1) : 'jpg'
@@ -411,13 +411,13 @@ export class DownloadManager extends EventEmitter {
     if (!task) {
       throw new Error(`Download task not found: ${taskId}`)
     }
-    
+
     const abortController = this.activeDownloads.get(taskId)
     if (abortController) {
       abortController.abort()
       this.activeDownloads.delete(taskId)
     }
-    
+
     task.status = 'pending' // Will be resumed when queue is processed
     await this.saveDownloadTasks()
   }
@@ -430,16 +430,16 @@ export class DownloadManager extends EventEmitter {
     if (!task) {
       throw new Error(`Download task not found: ${taskId}`)
     }
-    
+
     const abortController = this.activeDownloads.get(taskId)
     if (abortController) {
       abortController.abort()
       this.activeDownloads.delete(taskId)
     }
-    
+
     task.status = 'failed'
     await this.saveDownloadTasks()
-    
+
     this.downloadTasks.delete(taskId)
     this.emit('queueUpdated', this.getQueueLength())
   }
@@ -452,14 +452,14 @@ export class DownloadManager extends EventEmitter {
     if (!task) {
       throw new Error(`Download task not found: ${taskId}`)
     }
-    
+
     task.status = 'pending'
     task.progress = 0
     task.estimatedTimeRemaining = 0
-    
+
     await this.saveDownloadTasks()
     this.emit('queueUpdated', this.getQueueLength())
-    
+
     if (!this.isProcessing) {
       this.processQueue()
     }
@@ -534,7 +534,7 @@ export class DownloadManager extends EventEmitter {
       abortController.abort()
     }
     this.activeDownloads.clear()
-    
+
     // Save final state
     await this.saveDownloadTasks()
   }

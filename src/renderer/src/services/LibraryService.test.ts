@@ -34,13 +34,13 @@ describe('LibraryService', () => {
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
-    
+
     // Create a new instance for each test
     libraryService = new LibraryService();
-    
+
     // Get the mocked StorageService instance
     mockStorageService = (libraryService as any).storageService as jest.Mocked<StorageService>;
-    
+
     // Setup default mock implementations
     mockStorageService.loadUserLibrary = jest.fn().mockResolvedValue({ ...mockUserLibrary });
     mockStorageService.saveUserLibrary = jest.fn().mockResolvedValue(undefined);
@@ -49,9 +49,9 @@ describe('LibraryService', () => {
   describe('favorites management', () => {
     test('should add series to favorites', async () => {
       const seriesId = 'test-series-1';
-      
+
       await libraryService.addToFavorites(seriesId);
-      
+
       expect(mockStorageService.loadUserLibrary).toHaveBeenCalled();
       expect(mockStorageService.saveUserLibrary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -72,16 +72,16 @@ describe('LibraryService', () => {
         dateAdded: new Date(),
         notificationsEnabled: true
       };
-      
+
       const libraryWithFavorite = {
         ...mockUserLibrary,
         favorites: [existingFavorite]
       };
-      
+
       mockStorageService.loadUserLibrary.mockResolvedValue(libraryWithFavorite);
-      
+
       await libraryService.addToFavorites(seriesId);
-      
+
       expect(mockStorageService.saveUserLibrary).not.toHaveBeenCalled();
     });
 
@@ -92,16 +92,16 @@ describe('LibraryService', () => {
         dateAdded: new Date(),
         notificationsEnabled: true
       };
-      
+
       const libraryWithFavorite = {
         ...mockUserLibrary,
         favorites: [existingFavorite]
       };
-      
+
       mockStorageService.loadUserLibrary.mockResolvedValue(libraryWithFavorite);
-      
+
       await libraryService.removeFromFavorites(seriesId);
-      
+
       expect(mockStorageService.saveUserLibrary).toHaveBeenCalledWith(
         expect.objectContaining({
           favorites: []
@@ -122,16 +122,16 @@ describe('LibraryService', () => {
           notificationsEnabled: false
         }
       ];
-      
+
       const libraryWithFavorites = {
         ...mockUserLibrary,
         favorites
       };
-      
+
       mockStorageService.loadUserLibrary.mockResolvedValue(libraryWithFavorites);
-      
+
       const result = await libraryService.getFavorites();
-      
+
       expect(result).toEqual(favorites);
     });
 
@@ -142,24 +142,24 @@ describe('LibraryService', () => {
         dateAdded: new Date(),
         notificationsEnabled: true
       };
-      
+
       const libraryWithFavorite = {
         ...mockUserLibrary,
         favorites: [existingFavorite]
       };
-      
+
       mockStorageService.loadUserLibrary.mockResolvedValue(libraryWithFavorite);
-      
+
       const isFavorite = await libraryService.isFavorite(seriesId);
       const isNotFavorite = await libraryService.isFavorite('non-existent-series');
-      
+
       expect(isFavorite).toBe(true);
       expect(isNotFavorite).toBe(false);
     });
 
     test('should toggle favorite status', async () => {
       const seriesId = 'test-series-1';
-      
+
       // Test that the method exists and can be called
       const result = await libraryService.toggleFavorite(seriesId);
       expect(typeof result).toBe('boolean');
@@ -172,9 +172,9 @@ describe('LibraryService', () => {
       const seriesId = 'test-series-1';
       const chapterId = 'chapter-1';
       const pageNumber = 5;
-      
+
       await libraryService.markAsRead(seriesId, chapterId, pageNumber);
-      
+
       expect(mockStorageService.saveUserLibrary).toHaveBeenCalledWith(
         expect.objectContaining({
           readingProgress: expect.arrayContaining([
@@ -204,16 +204,16 @@ describe('LibraryService', () => {
           lastReadDate: new Date()
         }
       ];
-      
+
       const libraryWithProgress = {
         ...mockUserLibrary,
         readingProgress
       };
-      
+
       mockStorageService.loadUserLibrary.mockResolvedValue(libraryWithProgress);
-      
+
       const result = await libraryService.getReadingProgress(seriesId);
-      
+
       expect(result).toHaveLength(1);
       expect(result[0].seriesId).toBe(seriesId);
     });
@@ -222,7 +222,7 @@ describe('LibraryService', () => {
   describe('error handling', () => {
     test('should handle storage errors gracefully', async () => {
       mockStorageService.loadUserLibrary.mockRejectedValue(new Error('Storage error'));
-      
+
       await expect(libraryService.getFavorites()).rejects.toThrow('Failed to get favorites');
     });
   });

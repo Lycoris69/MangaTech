@@ -47,7 +47,8 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
       // Sync downloaded chapters
       const downloadInfo = userLibrary.downloads.find(d => d.seriesId === series.id);
       if (downloadInfo) {
-        setDownloadedChapterIds(new Set(downloadInfo.chapters));
+        const chapterIds = downloadInfo.chapters.map(c => typeof c === 'string' ? c : c.id);
+        setDownloadedChapterIds(new Set(chapterIds));
       } else {
         setDownloadedChapterIds(new Set());
       }
@@ -139,16 +140,16 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
 
       const idToDownload = chapter.chapterUrl || chapter.sourceUrl || chapter.id;
 
-      const downloadedPath = await window.electronAPI.scraper.downloadChapter({
+      const result = await window.electronAPI.scraper.downloadChapter({
         seriesId: series.id,
         chapterId: idToDownload,
         seriesTitle: series.title,
-        chapterTitle: chapter.title || `Chapter ${chapter.chapterNumber}`,
+        chapterTitle: `Chapter ${chapter.chapterNumber}`,
         basePath: destPath
       });
 
       // Register download in library for offline reading
-      await libraryService.registerDownload(series.id, chapter.id, downloadedPath);
+      await libraryService.registerDownload(series.id, chapter.id, result);
 
       // Refresh the library state to reflect changes
       await loadUserLibrary();
@@ -189,15 +190,15 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
         const idToDownload = chapter.chapterUrl || chapter.sourceUrl || chapter.id;
 
         try {
-          const downloadedPath = await window.electronAPI.scraper.downloadChapter({
+          const result = await window.electronAPI.scraper.downloadChapter({
             seriesId: series.id,
             chapterId: idToDownload,
             seriesTitle: series.title,
-            chapterTitle: chapter.title || `Chapter ${chapter.chapterNumber}`,
+            chapterTitle: `Chapter ${chapter.chapterNumber}`,
             basePath: destPath
           });
 
-          await libraryService.registerDownload(series.id, chapter.id, downloadedPath);
+          await libraryService.registerDownload(series.id, chapter.id, result);
         } catch (err) {
           console.error(`Failed to download chapter ${chapter.chapterNumber}:`, err);
           // Continue with next chapter even if one fails

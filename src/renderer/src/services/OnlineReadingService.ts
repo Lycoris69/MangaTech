@@ -78,14 +78,14 @@ export class OnlineReadingService {
   async startOnlineReading(chapterId: string): Promise<PageUrl[]> {
     try {
       await this.checkNetworkConnectivity()
-      
+
       if (!this.networkStatus.isOnline) {
         throw new Error('No internet connection available for online reading')
       }
 
       // Get chapter pages from scraper
       const pageData = await this.manhwazScraper.getChapterPages(chapterId)
-      
+
       if (!pageData || pageData.length === 0) {
         throw new Error('No pages found for this chapter')
       }
@@ -120,7 +120,7 @@ export class OnlineReadingService {
    */
   async getPage(chapterId: string, pageNumber: number, pageUrl: string): Promise<string> {
     const cacheKey = `${chapterId}-${pageNumber}`
-    
+
     // Check cache first
     const cachedPage = this.pageCache.get(cacheKey)
     if (cachedPage && !this.isCacheExpired(cachedPage)) {
@@ -129,31 +129,31 @@ export class OnlineReadingService {
 
     try {
       await this.checkNetworkConnectivity()
-      
+
       if (!this.networkStatus.isOnline) {
         throw new Error('No internet connection available')
       }
 
       // Fetch page image
       const imageData = await this.fetchPageImage(pageUrl)
-      
+
       // Cache the page
       this.cachePageImage(chapterId, pageNumber, pageUrl, imageData)
-      
+
       // Reset consecutive failures on success
       this.networkStatus.consecutiveFailures = 0
-      
+
       return imageData
     } catch (error) {
       this.networkStatus.consecutiveFailures++
       console.error(`Failed to get page ${pageNumber}:`, error)
-      
+
       // Return cached version if available, even if expired
       if (cachedPage) {
         console.warn('Using expired cached page due to network error')
         return cachedPage.imageData
       }
-      
+
       throw error
     }
   }
@@ -167,7 +167,7 @@ export class OnlineReadingService {
     }
 
     this.currentSession.currentPage = pageNumber
-    
+
     // Update preloading based on new current page
     if (this.currentSession.isStreaming) {
       await this.updatePreloading()
@@ -227,11 +227,11 @@ export class OnlineReadingService {
    */
   private async checkNetworkConnectivity(): Promise<void> {
     const now = new Date()
-    
+
     // Update basic online status
     this.networkStatus.isOnline = navigator.onLine
     this.networkStatus.lastChecked = now
-    
+
     // If navigator says we're offline, don't bother with further checks
     if (!navigator.onLine) {
       return
@@ -265,7 +265,7 @@ export class OnlineReadingService {
   private handleNetworkChange(isOnline: boolean): void {
     this.networkStatus.isOnline = isOnline
     this.networkStatus.lastChecked = new Date()
-    
+
     if (isOnline) {
       this.networkStatus.consecutiveFailures = 0
       // Resume preloading if we have an active session
@@ -396,7 +396,7 @@ export class OnlineReadingService {
         return `data:${contentType};base64,${base64}`
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error')
-        
+
         if (attempt < this.config.retryAttempts) {
           await this.delay(this.config.retryDelayMs * attempt)
         }
@@ -416,7 +416,7 @@ export class OnlineReadingService {
     imageData: string
   ): void {
     const cacheKey = `${chapterId}-${pageNumber}`
-    
+
     // Remove oldest entries if cache is full
     if (this.pageCache.size >= this.config.cacheSize) {
       const oldestKey = Array.from(this.pageCache.keys())[0]

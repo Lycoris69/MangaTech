@@ -13,6 +13,9 @@ export class DownloadManager {
     private tasks: DownloadTask[] | null = null
     private webContents: WebContents | null = null
     private readonly CONCURRENCY_LIMIT = 5
+    private readonly MAX_CONCURRENT_CHAPTERS = 2
+    private activeChaptersCount = 0
+    private chapterQueue: (() => void)[] = []
 
     constructor(scraperManager: ScraperManager, tasksFile: string) {
         this.scraperManager = scraperManager
@@ -33,6 +36,9 @@ export class DownloadManager {
                             winston.format.colorize(),
                             winston.format.simple()
                         )
+                    }),
+                    new winston.transports.File({
+                        filename: 'logs/combined.log'
                     })
                 ]
             })
@@ -86,7 +92,15 @@ export class DownloadManager {
         chapterTitle: string,
         baseDownloadPath: string,
         onProgress?: (progress: number) => void
-    ): Promise<string> {
+    ): Promise<{ chapterPath: string; seriesPath: string }> {
+        // Wait for a slot in the global chapter queue
+        if (this.activeChaptersCount >= this.MAX_CONCURRENT_CHAPTERS) {
+            DownloadManager.logger.info('Waiting for download slot...', { seriesTitle, chapterTitle });
+            await new Promise<void>(resolve => this.chapterQueue.push(resolve));
+        }
+
+        this.activeChaptersCount++;
+
         try {
             DownloadManager.logger.info('Starting download', { seriesTitle, chapterTitle, seriesId, chapterId })
 
@@ -120,6 +134,7 @@ export class DownloadManager {
                 task = {
                     id: taskId,
                     seriesId,
+                    seriesTitle,
                     chapterIds: [chapterId],
                     status: 'pending',
                     progress: 0,
@@ -129,6 +144,7 @@ export class DownloadManager {
                 }
                 tasks.push(task)
             } else {
+                task.seriesTitle = seriesTitle // Ensure it's updated if it was missing
                 task.status = 'downloading'
                 task.progress = 0
             }
@@ -175,6 +191,9 @@ export class DownloadManager {
                             await this.saveTasks(tasks)
                             if (onProgress) onProgress(task.progress)
                         }
+
+                        // Small delay to be less aggressive
+                        await new Promise(resolve => setTimeout(resolve, 300));
                     } catch (itemErr) {
                         DownloadManager.logger.error(`Failed to download page ${page.pageNumber}`, { error: itemErr, imageUrl: page.imageUrl })
                         throw itemErr
@@ -191,7 +210,7 @@ export class DownloadManager {
             await this.saveTasks(tasks)
 
             DownloadManager.logger.info('Download completed successfully', { chapterPath })
-            return chapterPath
+            return { chapterPath, seriesPath: mangaDir }
         } catch (err: any) {
             DownloadManager.logger.error('Download process failed', {
                 error: err.message,
@@ -209,27 +228,47 @@ export class DownloadManager {
             }
 
             throw err
+        } finally {
+            this.activeChaptersCount--;
+            // Process next chapter in queue
+            const next = this.chapterQueue.shift();
+            if (next) next();
         }
     }
 
-    private async downloadFile(url: string, dest: string): Promise<void> {
-        const response = await axios({
-            url,
-            method: 'GET',
-            responseType: 'stream',
-            headers: {
-                'Referer': 'https://manhwaz.com/',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    private async downloadFile(url: string, dest: string, attempts = 3): Promise<void> {
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const response = await axios({
+                    url,
+                    method: 'GET',
+                    responseType: 'stream',
+                    timeout: 30000, // 30s timeout
+                    headers: {
+                        'Referer': 'https://manhwaz.com/',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                })
+
+                const writer = fs.createWriteStream(dest)
+                response.data.pipe(writer)
+
+                return await new Promise((resolve, reject) => {
+                    writer.on('finish', resolve)
+                    writer.on('error', reject)
+                })
+            } catch (err: any) {
+                const isLastAttempt = i === attempts - 1;
+                const status = err.response?.status;
+
+                if (isLastAttempt) throw err;
+
+                // Exponential backoff: 2s, 4s, 8s...
+                const delay = Math.pow(2, i + 1) * 1000;
+                DownloadManager.logger.warn(`Download failed (Status: ${status}), retrying in ${delay / 1000}s...`, { url, attempt: i + 1 });
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
-        })
-
-        const writer = fs.createWriteStream(dest)
-        response.data.pipe(writer)
-
-        return new Promise((resolve, reject) => {
-            writer.on('finish', resolve)
-            writer.on('error', reject)
-        })
+        }
     }
 
     private sanitizeFilename(name: string): string {
@@ -237,12 +276,34 @@ export class DownloadManager {
     }
 
     async getLocalChapterPages(chapterId: string): Promise<PageUrl[] | null> {
+        DownloadManager.logger.info(`getLocalChapterPages requested for: ${chapterId}`);
         try {
             const tasks = await this.loadTasks()
-            // Match by ID or check if chapterId is in the list
-            const task = tasks.find(t => t.id === chapterId || t.chapterIds.includes(chapterId))
+            DownloadManager.logger.debug(`Searching in ${tasks.length} tasks`);
+
+            // Match by ID or check if chapterId is in the list with lenient fallback
+            const task = tasks.find(t => {
+                const isMatch = t.id === chapterId || t.chapterIds.includes(chapterId);
+
+                if (!isMatch) {
+                    // Lenient fallback: handle mismatches between full URLs and slugs/paths
+                    try {
+                        const normalize = (id: string) => id.replace(/^https?:\/\/[^/]+/, '').replace(/^\/+|\/+$/g, '')
+                        const normalizedTarget = normalize(chapterId)
+                        const subMatch = t.chapterIds.some(cid => normalize(cid) === normalizedTarget);
+                        if (subMatch) {
+                            DownloadManager.logger.debug(`Found lenient match for ${chapterId} in task ${t.id}`);
+                            return true;
+                        }
+                    } catch {
+                        return false
+                    }
+                }
+                return isMatch;
+            })
 
             if (task && task.status === 'completed' && fs.existsSync(task.downloadPath)) {
+                DownloadManager.logger.info(`Found local task for ${chapterId} at ${task.downloadPath}`);
                 const files = fs.readdirSync(task.downloadPath)
                     .filter(f => ['.jpg', '.jpeg', '.png', '.webp'].includes(path.extname(f).toLowerCase()))
                     .sort() // Path names 001.jpg, 002.jpg etc will sort correctly
@@ -253,6 +314,13 @@ export class DownloadManager {
                     localPath: path.join(task.downloadPath, file)
                 }))
             }
+
+            if (task) {
+                DownloadManager.logger.warn(`Task found but NOT completed or path missing: ${task.id}`, { status: task.status, exists: fs.existsSync(task.downloadPath) });
+            } else {
+                DownloadManager.logger.debug(`No task found for ${chapterId}`);
+            }
+
             return null
         } catch (err) {
             DownloadManager.logger.error('Failed to get local chapter pages', err)

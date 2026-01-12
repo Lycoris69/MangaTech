@@ -61,11 +61,11 @@ describe('Integration Tests - Complete User Workflows', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Set up default mock responses
     mockAxiosInstance.get.mockResolvedValue({ data: mockHomepageHtml })
     mockAxiosInstance.head.mockResolvedValue({ status: 200 })
-    
+
     // Initialize scraper
     manhwazScraper = new ManhwazScraper()
 
@@ -138,7 +138,7 @@ describe('Integration Tests - Complete User Workflows', () => {
 
       // Step 1: User searches for manga
       mockAxiosInstance.get.mockResolvedValue({ data: mockSearchHtml })
-      
+
       const searchResults = await manhwazScraper.searchSeries('tower of god')
 
       // Verify search functionality (Requirements 3.2, 3.3)

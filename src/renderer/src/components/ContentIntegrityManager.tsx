@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  ContentIntegrityService, 
-  DuplicateDetectionResult, 
-  FileIntegrityResult, 
+import {
+  ContentIntegrityService,
+  DuplicateDetectionResult,
+  FileIntegrityResult,
   ResolutionOptions,
-  ResolutionResult 
+  ResolutionResult
 } from '../services/ContentIntegrityService'
 import { FileSystemService } from '../services/FileSystemService'
 import { StorageService } from '../services/StorageService'
@@ -24,10 +24,10 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
   fileSystemService,
   storageService
 }) => {
-  const [integrityService] = useState(() => 
+  const [integrityService] = useState(() =>
     new ContentIntegrityService(fileSystemService, storageService)
   )
-  
+
   const [isScanning, setIsScanning] = useState(false)
   const [scanProgress, setScanProgress] = useState<ScanProgress>({ current: 0, total: 100, operation: '' })
   const [duplicates, setDuplicates] = useState<DuplicateDetectionResult | null>(null)
@@ -93,7 +93,7 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
 
     try {
       const result = await integrityService.quickHealthCheck()
-      
+
       if (result.hasIssues) {
         setRecommendations([
           `Found ${result.duplicateCount} duplicate files`,
@@ -123,7 +123,7 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
     try {
       const result = await integrityService.resolveContentIssues(duplicates, integrity, options)
       setResolutionResult(result)
-      
+
       // Update recommendations based on resolution
       const newRecommendations = []
       if (result.duplicatesRemoved > 0) {
@@ -142,7 +142,7 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
       if (result.errors.length > 0) {
         newRecommendations.push(`${result.errors.length} errors occurred during resolution`)
       }
-      
+
       setRecommendations(newRecommendations)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
@@ -164,15 +164,15 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
       </div>
 
       <div className="actions">
-        <button 
-          onClick={runQuickCheck} 
+        <button
+          onClick={runQuickCheck}
           disabled={isScanning}
           className="btn btn-secondary"
         >
           Quick Health Check
         </button>
-        <button 
-          onClick={runFullHealthCheck} 
+        <button
+          onClick={runFullHealthCheck}
           disabled={isScanning}
           className="btn btn-primary"
         >
@@ -183,8 +183,8 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
       {isScanning && (
         <div className="progress-section">
           <div className="progress-bar">
-            <div 
-              className="progress-fill" 
+            <div
+              className="progress-fill"
               style={{ width: `${scanProgress.current}%` }}
             />
           </div>
@@ -218,7 +218,7 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
             <p>Duplicate Files: {duplicates.totalDuplicates}</p>
             <p>Potential Space Saved: {formatFileSize(duplicates.potentialSpaceSaved)}</p>
           </div>
-          
+
           {duplicates.duplicateGroups.size > 0 && (
             <div className="duplicate-groups">
               <h4>Duplicate Groups</h4>
@@ -249,7 +249,7 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
             <p>Corrupted Files: {integrity.corruptedFiles.length}</p>
             <p>Missing Files: {integrity.missingFiles.length}</p>
           </div>
-          
+
           {integrity.corruptedFiles.length > 0 && (
             <div className="corrupted-files">
               <h4>Corrupted Files</h4>
@@ -307,7 +307,7 @@ export const ContentIntegrityManager: React.FC<ContentIntegrityManagerProps> = (
             <p>Space Saved: {formatFileSize(resolutionResult.spaceSaved)}</p>
             <p>Files Marked for Redownload: {resolutionResult.redownloadRequired.length}</p>
           </div>
-          
+
           {resolutionResult.errors.length > 0 && (
             <div className="resolution-errors">
               <h4>Errors</h4>
