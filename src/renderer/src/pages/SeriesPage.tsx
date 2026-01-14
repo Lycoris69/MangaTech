@@ -27,6 +27,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
   const [downloadedChapterIds, setDownloadedChapterIds] = useState<Set<string>>(new Set());
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [isBatchDownloading, setIsBatchDownloading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const storageService = new StorageService();
   const libraryService = new LibraryService();
@@ -235,11 +236,13 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
     );
   }
 
-  const sortedChapters = [...chapters].sort((a, b) => {
+  const allSortedChapters = [...chapters].sort((a, b) => {
     const aNum = parseFloat(a.chapterNumber.toString()) || 0;
     const bNum = parseFloat(b.chapterNumber.toString()) || 0;
     return sortDesc ? bNum - aNum : aNum - bNum;
   });
+
+  const displayedChapters = isExpanded ? allSortedChapters : allSortedChapters.slice(0, 20);
 
   return (
     <div className="series-page">
@@ -319,7 +322,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
         </div>
 
         <div className="chapters-list">
-          {sortedChapters.map((chapter) => (
+          {displayedChapters.map((chapter) => (
             <div key={chapter.id} className="chapter-item">
               <div className="chapter-info" onClick={() => handleReadOnline(chapter)}>
                 <span className="chapter-name">
@@ -340,6 +343,14 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
             </div>
           ))}
         </div>
+
+        {!isExpanded && chapters.length > 20 && (
+          <div className="show-more-container">
+            <button className="show-more-btn" onClick={() => setIsExpanded(true)}>
+              Show All Chapters ({chapters.length})
+            </button>
+          </div>
+        )}
       </div>
 
       {readingChapterId && (

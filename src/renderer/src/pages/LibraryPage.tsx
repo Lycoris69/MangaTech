@@ -355,7 +355,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                         lastUpdated={series?.lastUpdated ? new Date(series.lastUpdated) : undefined}
                         status={series?.status}
                         rating={series?.rating}
-                        onClick={() => handleReadSeries(favorite.seriesId)}
+                        onClick={() => navigate(`/series/${encodeURIComponent(favorite.seriesId)}`)}
                         actions={
                           <div className="card-actions-row">
                             <button

@@ -540,3 +540,32 @@
     width: 100%;
   }
 }
+
+.show-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(157, 78, 221, 0.2);
+}
+
+.show-more-btn {
+  background: transparent;
+  color: var(--cyber-purple-bright);
+  border: 1px solid var(--cyber-purple);
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.show-more-btn:hover {
+  background: rgba(157, 78, 221, 0.1);
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
+  transform: translateY(-2px);
+}
