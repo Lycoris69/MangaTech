@@ -147,6 +147,10 @@ export class SeriesDetailsExtractor {
         throw error
       }
 
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        throw new ScrapingError(`Series not found (404): ${seriesUrl}`, 'NOT_FOUND')
+      }
+
       throw new ScrapingError(`Failed to extract series details: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -366,8 +370,15 @@ export class SeriesDetailsExtractor {
         let imageUrl = element.attr('src') || element.attr('data-src') || element.attr('data-lazy-src') || ''
 
         if (imageUrl) {
-          // Convert relative URLs to absolute
-          imageUrl = this.urlManager.resolveUrl(imageUrl)
+          // Handle protocol-relative URLs (e.g., //example.com/image.jpg)
+          if (imageUrl.startsWith('//')) {
+            imageUrl = 'https:' + imageUrl
+          }
+
+          // Handle relative URLs
+          if (!imageUrl.startsWith('http')) {
+            imageUrl = this.urlManager.resolveUrl(imageUrl)
+          }
 
           // Prefer higher quality versions if available
           imageUrl = this.optimizeImageUrl(imageUrl)
@@ -765,11 +776,17 @@ export class SeriesDetailsExtractor {
   }
 
   /**
-   * Clear all cached data
+   * Clear cached data, optionally for a specific series
    */
-  public clearCache(): void {
-    this.cache.clear()
-    SeriesDetailsExtractor.logger.info('Series details cache cleared')
+  public clearCache(seriesUrl?: string): void {
+    if (seriesUrl) {
+      const cacheKey = `series-${seriesUrl}`
+      this.cache.delete(cacheKey)
+      SeriesDetailsExtractor.logger.debug('Cleared cache for series', { seriesUrl })
+    } else {
+      this.cache.clear()
+      SeriesDetailsExtractor.logger.info('Series details cache cleared')
+    }
   }
 
   /**

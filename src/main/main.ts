@@ -110,23 +110,23 @@ class MangaTechApp {
     // Load the renderer
     if (process.env.NODE_ENV === 'development') {
       console.log('Loading development URL: http://localhost:3000');
-      this.mainWindow.loadURL('http://localhost:3000').catch(err => {
+      this.mainWindow?.loadURL('http://localhost:3000').catch(err => {
         console.error('Failed to load URL:', err);
       });
     } else {
-      this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html')).catch(err => {
+      this.mainWindow?.loadFile(path.join(__dirname, '../renderer/index.html')).catch(err => {
         console.error('Failed to load file:', err);
       });
     }
 
     // Show window when ready (as a backup if not already shown)
-    this.mainWindow.once('ready-to-show', () => {
+    this.mainWindow?.once('ready-to-show', () => {
       console.log('MainWindow ready-to-show');
       this.mainWindow?.show();
     });
 
     // Handle window closed
-    this.mainWindow.on('closed', () => {
+    this.mainWindow?.on('closed', () => {
       this.mainWindow = null;
     });
   }
@@ -167,7 +167,7 @@ class MangaTechApp {
     // For development (http://localhost:3000), we might need to allow images
     session.defaultSession.webRequest.onHeadersReceived(
       { urls: ['*://*.manhwaz.com/*'] },
-      (details, callback) => {
+      (details: electron.OnHeadersReceivedListenerDetails, callback: (headersReceivedResponse: electron.HeadersReceivedResponse) => void) => {
         const headers = { ...details.responseHeaders };
 
         // Ensure Access-Control-Allow-Origin is set to allow the renderer to read images if needed
@@ -359,6 +359,38 @@ class MangaTechApp {
     IpcManager.handle('scraper:getDownloadTasks', async () => {
       try {
         return await this.downloadManager.getTasks();
+      } catch (error) {
+        throw error;
+      }
+    });
+
+    IpcManager.handle('scraper:pauseDownload', async (_, taskId: string) => {
+      try {
+        return await this.downloadManager.pauseDownload(taskId);
+      } catch (error) {
+        throw error;
+      }
+    });
+
+    IpcManager.handle('scraper:resumeDownload', async (_, taskId: string) => {
+      try {
+        return await this.downloadManager.resumeDownload(taskId);
+      } catch (error) {
+        throw error;
+      }
+    });
+
+    IpcManager.handle('scraper:cancelDownload', async (_, taskId: string) => {
+      try {
+        return await this.downloadManager.cancelDownload(taskId);
+      } catch (error) {
+        throw error;
+      }
+    });
+
+    IpcManager.handle('scraper:retryDownload', async (_, taskId: string) => {
+      try {
+        return await this.downloadManager.retryDownload(taskId);
       } catch (error) {
         throw error;
       }

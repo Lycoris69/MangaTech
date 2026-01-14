@@ -590,11 +590,25 @@ export class ManhwazScraper extends BaseScraper {
   }
 
   /**
-   * Invalidate cache for specific content types
+   * Invalidate cache for specific content types and IDs
    */
-  async invalidateCache(type: 'homepage' | 'search' | 'series' | 'chapter' | string): Promise<void> {
-    await this.cacheService.invalidateCache(type)
-    ManhwazScraper.logger.info('Cache invalidated', { type })
+  async invalidateCache(type: 'homepage' | 'search' | 'series' | 'chapter' | string, id?: string): Promise<void> {
+    if (type === 'chapter' && id) {
+      const chapterUrl = this.urlManager.buildChapterUrl(id)
+      this.chapterExtractor.clearCache(chapterUrl)
+      await this.cacheService.invalidateCache(`chapter:${id}:pages`)
+    } else if (type === 'series' && id) {
+      const seriesUrl = this.urlManager.buildSeriesUrl(id)
+      this.seriesDetailsExtractor.clearCache(seriesUrl)
+      await this.cacheService.invalidateCache(`series:${id}`)
+    } else if (type === 'search' && id) {
+      await this.cacheService.invalidateCache(`search:${id}`)
+    } else {
+      await this.cacheService.invalidateCache(type)
+      if (type === 'chapter') this.chapterExtractor.clearCache()
+      if (type === 'series') this.seriesDetailsExtractor.clearCache()
+    }
+    ManhwazScraper.logger.info('Cache invalidated', { type, id })
   }
 
   /**

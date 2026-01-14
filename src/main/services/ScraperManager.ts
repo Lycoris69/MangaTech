@@ -186,6 +186,16 @@ export class ScraperManager {
     }
   }
 
+  // Invalidate cache in specific source
+  public async invalidateCache(id: string, type: 'series' | 'chapter' | 'search' = 'chapter'): Promise<void> {
+    const [sourceName, actualId] = this.parseSeriesId(id)
+    const scraper = this.scrapers.get(sourceName)
+
+    if (scraper) {
+      await scraper.invalidateCache(type, actualId)
+    }
+  }
+
   // Validate source availability
   public async validateSource(sourceUrl: string): Promise<boolean> {
     // Find scraper by matching base URL

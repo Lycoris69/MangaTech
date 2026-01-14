@@ -68,8 +68,9 @@ export interface DownloadTask {
   id: string
   seriesId: string
   seriesTitle?: string
+  chapterTitle?: string
   chapterIds: string[]
-  status: 'pending' | 'downloading' | 'completed' | 'failed'
+  status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused'
   progress: number
   estimatedTimeRemaining: number
   downloadPath: string

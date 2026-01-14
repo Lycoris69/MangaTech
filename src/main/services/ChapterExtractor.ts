@@ -395,9 +395,15 @@ export class ChapterExtractor {
   }
 
   /**
-   * Clear all cached data
+   * Clear cached data, optionally for a specific chapter
    */
-  public clearCache(): void {
-    this.cache.clear()
+  public clearCache(chapterUrl?: string): void {
+    if (chapterUrl) {
+      this.cache.delete(chapterUrl)
+      ChapterExtractor.logger.debug('Cleared cache for chapter', { chapterUrl })
+    } else {
+      this.cache.clear()
+      ChapterExtractor.logger.info('Chapter extractor cache cleared')
+    }
   }
 }

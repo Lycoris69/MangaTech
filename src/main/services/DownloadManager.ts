@@ -12,10 +12,12 @@ export class DownloadManager {
     private tasksFile: string
     private tasks: DownloadTask[] | null = null
     private webContents: WebContents | null = null
-    private readonly CONCURRENCY_LIMIT = 5
-    private readonly MAX_CONCURRENT_CHAPTERS = 2
+    private readonly CONCURRENCY_LIMIT = 4
+    private readonly MAX_CONCURRENT_CHAPTERS = 1
     private activeChaptersCount = 0
     private chapterQueue: (() => void)[] = []
+    private pausedTasks: Set<string> = new Set()
+    private cancelledTasks: Set<string> = new Set()
 
     constructor(scraperManager: ScraperManager, tasksFile: string) {
         this.scraperManager = scraperManager
@@ -91,7 +93,8 @@ export class DownloadManager {
         seriesTitle: string,
         chapterTitle: string,
         baseDownloadPath: string,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
+        force: boolean = false
     ): Promise<{ chapterPath: string; seriesPath: string }> {
         // Wait for a slot in the global chapter queue
         if (this.activeChaptersCount >= this.MAX_CONCURRENT_CHAPTERS) {
@@ -102,6 +105,13 @@ export class DownloadManager {
         this.activeChaptersCount++;
 
         try {
+            if (this.pausedTasks.has(`${seriesId}-${chapterId}`)) {
+                DownloadManager.logger.info('Chapter is paused, skipping execution', { seriesTitle, chapterTitle });
+                this.activeChaptersCount--;
+                const next = this.chapterQueue.shift();
+                if (next) next();
+                throw new Error('PAUSED');
+            }
             DownloadManager.logger.info('Starting download', { seriesTitle, chapterTitle, seriesId, chapterId })
 
             // Create directory structure
@@ -136,6 +146,7 @@ export class DownloadManager {
                     seriesId,
                     seriesTitle,
                     chapterIds: [chapterId],
+                    chapterTitle,
                     status: 'pending',
                     progress: 0,
                     estimatedTimeRemaining: 0,
@@ -144,7 +155,8 @@ export class DownloadManager {
                 }
                 tasks.push(task)
             } else {
-                task.seriesTitle = seriesTitle // Ensure it's updated if it was missing
+                task.seriesTitle = seriesTitle
+                task.chapterTitle = chapterTitle
                 task.status = 'downloading'
                 task.progress = 0
             }
@@ -165,6 +177,15 @@ export class DownloadManager {
 
             const downloadWorker = async () => {
                 while (downloadQueue.length > 0) {
+                    if (this.pausedTasks.has(taskId)) {
+                        DownloadManager.logger.info('Download paused', { taskId });
+                        break;
+                    }
+                    if (this.cancelledTasks.has(taskId)) {
+                        DownloadManager.logger.info('Download cancelled', { taskId });
+                        break;
+                    }
+
                     const page = downloadQueue.shift()
                     if (!page) break
 
@@ -180,8 +201,20 @@ export class DownloadManager {
                         const fileName = `${page.pageNumber.toString().padStart(3, '0')}${ext}`
                         const filePath = path.join(chapterPath, fileName)
 
+                        // Check if file already exists (for resumption), unless force is true
+                        if (!force && fs.existsSync(filePath)) {
+                            const stats = fs.statSync(filePath);
+                            if (stats.size > 0) {
+                                DownloadManager.logger.debug(`File already exists, skipping: ${fileName}`);
+                                localPages.push(filePath)
+                                downloadedPages++
+                                this.updateProgress(tasks, task, downloadedPages, totalWork, onProgress);
+                                continue;
+                            }
+                        }
+
                         DownloadManager.logger.debug(`Downloading page ${page.pageNumber}/${totalPages}`, { imageUrl: page.imageUrl })
-                        await this.downloadFile(page.imageUrl, filePath)
+                        await this.downloadFile(page.imageUrl, filePath, taskId)
                         localPages.push(filePath)
 
                         downloadedPages++
@@ -193,7 +226,7 @@ export class DownloadManager {
                         }
 
                         // Small delay to be less aggressive
-                        await new Promise(resolve => setTimeout(resolve, 300));
+                        await new Promise(resolve => setTimeout(resolve, 50));
                     } catch (itemErr) {
                         DownloadManager.logger.error(`Failed to download page ${page.pageNumber}`, { error: itemErr, imageUrl: page.imageUrl })
                         throw itemErr
@@ -205,6 +238,19 @@ export class DownloadManager {
             const workers = Array.from({ length: this.CONCURRENCY_LIMIT }, () => downloadWorker())
             await Promise.all(workers)
 
+            if (this.cancelledTasks.has(taskId)) {
+                this.cancelledTasks.delete(taskId);
+                task.status = 'failed';
+                await this.saveTasks(tasks);
+                throw new Error('CANCELLED');
+            }
+
+            if (this.pausedTasks.has(taskId)) {
+                task.status = 'paused';
+                await this.saveTasks(tasks);
+                return { chapterPath, seriesPath: mangaDir };
+            }
+
             task.status = 'completed'
             task.completedAt = new Date()
             await this.saveTasks(tasks)
@@ -212,6 +258,9 @@ export class DownloadManager {
             DownloadManager.logger.info('Download completed successfully', { chapterPath })
             return { chapterPath, seriesPath: mangaDir }
         } catch (err: any) {
+            if (err.message === 'PAUSED') return { chapterPath: '', seriesPath: '' };
+            if (err.message === 'CANCELLED') return { chapterPath: '', seriesPath: '' };
+
             DownloadManager.logger.error('Download process failed', {
                 error: err.message,
                 stack: err.stack,
@@ -236,7 +285,85 @@ export class DownloadManager {
         }
     }
 
-    private async downloadFile(url: string, dest: string, attempts = 3): Promise<void> {
+    private async updateProgress(tasks: DownloadTask[], task: DownloadTask, downloadedPages: number, totalWork: number, onProgress?: (progress: number) => void) {
+        const newProgress = Math.round((downloadedPages / totalWork) * 100)
+        if (newProgress !== task.progress) {
+            task.progress = newProgress
+            await this.saveTasks(tasks)
+            if (onProgress) onProgress(task.progress)
+        }
+    }
+
+    async pauseDownload(taskId: string): Promise<void> {
+        DownloadManager.logger.info('Pausing download', { taskId });
+        this.pausedTasks.add(taskId);
+        const tasks = await this.loadTasks();
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+            task.status = 'paused';
+            await this.saveTasks(tasks);
+        }
+    }
+
+    async resumeDownload(taskId: string, force: boolean = false): Promise<void> {
+        DownloadManager.logger.info('Resuming download', { taskId });
+        this.pausedTasks.delete(taskId);
+        const tasks = await this.loadTasks();
+        const task = tasks.find(t => t.id === taskId);
+
+        if (task) {
+            task.status = 'pending';
+            await this.saveTasks(tasks);
+
+            // Re-trigger the download process
+            const basePath = path.dirname(path.dirname(task.downloadPath));
+            const chapterTitle = task.chapterTitle || task.id.split('-').pop() || 'Unknown';
+            const seriesTitle = task.seriesTitle || 'Unknown';
+
+            // We fire and forget here, the manager's queueing system in downloadChapter will handle concurrency
+            this.downloadChapter(
+                task.seriesId,
+                task.chapterIds[0],
+                seriesTitle,
+                chapterTitle,
+                basePath,
+                undefined,
+                force
+            ).catch(err => {
+                DownloadManager.logger.error('Failed to re-trigger download on resume', { taskId, error: err.message });
+            });
+        }
+    }
+
+    async retryDownload(taskId: string): Promise<void> {
+        DownloadManager.logger.info('Retrying download (Hard Retry)', { taskId });
+        const tasks = await this.loadTasks();
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+            // Invalidate cache for this chapter before retrying
+            await this.scraperManager.invalidateCache(task.chapterIds[0], 'chapter');
+        }
+        return this.resumeDownload(taskId, true);
+    }
+
+    async cancelDownload(taskId: string): Promise<void> {
+        DownloadManager.logger.info('Cancelling download', { taskId });
+        this.cancelledTasks.add(taskId);
+        this.pausedTasks.delete(taskId);
+        const tasks = await this.loadTasks();
+        const index = tasks.findIndex(t => t.id === taskId);
+        if (index !== -1) {
+            const task = tasks[index];
+            if (task.status === 'completed') {
+                // If already completed, just remove it or keep it? 
+                // Usually cancel means stop and remove if active.
+            }
+            tasks.splice(index, 1);
+            await this.saveTasks(tasks);
+        }
+    }
+
+    private async downloadFile(url: string, dest: string, taskId: string, attempts = 10): Promise<void> {
         for (let i = 0; i < attempts; i++) {
             try {
                 const response = await axios({
@@ -245,8 +372,14 @@ export class DownloadManager {
                     responseType: 'stream',
                     timeout: 30000, // 30s timeout
                     headers: {
-                        'Referer': 'https://manhwaz.com/',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                        'Referer': 'https://manhwaz.com',
+                        'Origin': 'https://manhwaz.com',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache',
+                        'Connection': 'keep-alive'
                     }
                 })
 
@@ -263,10 +396,11 @@ export class DownloadManager {
 
                 if (isLastAttempt) throw err;
 
-                // Exponential backoff: 2s, 4s, 8s...
-                const delay = Math.pow(2, i + 1) * 1000;
-                DownloadManager.logger.warn(`Download failed (Status: ${status}), retrying in ${delay / 1000}s...`, { url, attempt: i + 1 });
-                await new Promise(resolve => setTimeout(resolve, delay));
+                // Cap exponential backoff at 30s instead of geometric growth
+                const delay = Math.min(Math.pow(2, i + 1) * 1000, 30000);
+                DownloadManager.logger.warn(`Download failed (Status: ${status}), retrying in ${delay / 1000}s...`, { url, attempt: i + 1, taskId });
+
+                await this.sleep(delay, taskId);
             }
         }
     }
@@ -325,6 +459,20 @@ export class DownloadManager {
         } catch (err) {
             DownloadManager.logger.error('Failed to get local chapter pages', err)
             return null
+        }
+    }
+
+    private async sleep(ms: number, taskId: string): Promise<void> {
+        const checkInterval = 100;
+        let elapsed = 0;
+        while (elapsed < ms) {
+            if (this.cancelledTasks.has(taskId)) throw new Error('CANCELLED');
+            if (this.pausedTasks.has(taskId)) throw new Error('PAUSED');
+
+            const remaining = ms - elapsed;
+            const wait = Math.min(checkInterval, remaining);
+            await new Promise(resolve => setTimeout(resolve, wait));
+            elapsed += wait;
         }
     }
 }

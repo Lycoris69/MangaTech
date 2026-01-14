@@ -6,7 +6,7 @@ interface DownloadTask {
     seriesId: string;
     seriesTitle?: string;
     chapterIds: string[];
-    status: 'pending' | 'downloading' | 'completed' | 'failed';
+    status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused';
     progress: number;
     downloadPath: string;
     createdAt: Date;
@@ -17,14 +17,14 @@ const DownloadsPage: React.FC = () => {
     const [tasks, setTasks] = useState<DownloadTask[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
+    const [expandedFailedGroups, setExpandedFailedGroups] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const fetchTasks = async () => {
             try {
+                // @ts-ignore - electronAPI might not be recognized by TS in renderer but it exists via preload
                 const initialTasks = await window.electronAPI.scraper.getDownloadTasks();
                 setTasks(initialTasks);
-                // Default to collapsed (compact) view
-                // setExpandedSeries(new Set(initialTasks.map(t => t.seriesId)));
             } catch (error) {
                 console.error('Failed to fetch download tasks:', error);
             } finally {
@@ -34,6 +34,7 @@ const DownloadsPage: React.FC = () => {
 
         fetchTasks();
 
+        // @ts-ignore
         const unsubscribe = window.electronAPI.on('download:tasks-updated', (updatedTasks: DownloadTask[]) => {
             setTasks(updatedTasks);
         });
@@ -55,20 +56,73 @@ const DownloadsPage: React.FC = () => {
         });
     };
 
+    const toggleFailedGroup = (seriesId: string) => {
+        setExpandedFailedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(seriesId)) {
+                next.delete(seriesId);
+            } else {
+                next.add(seriesId);
+            }
+            return next;
+        });
+    };
+
+    const pauseTask = async (taskId: string) => {
+        try {
+            // @ts-ignore
+            await window.electronAPI.scraper.pauseDownload(taskId);
+        } catch (error) {
+            console.error('Failed to pause download:', error);
+        }
+    };
+
+    const resumeTask = async (taskId: string) => {
+        try {
+            // @ts-ignore
+            await window.electronAPI.scraper.resumeDownload(taskId);
+        } catch (error) {
+            console.error('Failed to resume download:', error);
+        }
+    };
+
+    const cancelTask = async (taskId: string) => {
+        try {
+            if (confirm('Are you sure you want to cancel and remove this download task?')) {
+                // @ts-ignore
+                await window.electronAPI.scraper.cancelDownload(taskId);
+            }
+        } catch (error) {
+            console.error('Failed to cancel download:', error);
+        }
+    };
+
+    const retryTask = async (taskId: string) => {
+        try {
+            // @ts-ignore
+            await window.electronAPI.scraper.retryDownload(taskId);
+        } catch (error) {
+            console.error('Failed to retry download:', error);
+        }
+    };
+
+    const retryAllFailed = async (seriesId: string, groupTasks: DownloadTask[]) => {
+        const failedTasks = groupTasks.filter(t => t.status === 'failed');
+        for (const task of failedTasks) {
+            await retryTask(task.id);
+        }
+    };
+
     const beautifyId = (id: string) => {
-        // Remove common scraper prefixes
         const cleanId = id.replace(/^(manhwaz-series-|series-|manhwaz-)/, '');
         return cleanId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
-    // Helper to clean up titles that might have been saved with prefixes
     const cleanTitle = (title: string) => {
         if (!title) return '';
-        // Remove "Manhwaz Series" prefix if present (case insensitive)
         return title.replace(/^Manhwaz Series\s+/i, '');
     };
 
-    // Group tasks by seriesId
     const groups = tasks.reduce((acc, task) => {
         const seriesId = task.seriesId || 'unknown';
         if (!acc[seriesId]) {
@@ -82,7 +136,6 @@ const DownloadsPage: React.FC = () => {
     }, {} as Record<string, { title: string, tasks: DownloadTask[] }>);
 
     const sortedGroups = Object.entries(groups).sort((a, b) => {
-        // Sort by most recent task in group
         const aMax = Math.max(...a[1].tasks.map(t => new Date(t.createdAt).getTime()));
         const bMax = Math.max(...b[1].tasks.map(t => new Date(t.createdAt).getTime()));
         return bMax - aMax;
@@ -107,7 +160,6 @@ const DownloadsPage: React.FC = () => {
                     sortedGroups.map(([seriesId, group]) => {
                         const isExpanded = expandedSeries.has(seriesId);
                         const activeCount = group.tasks.filter(t => t.status === 'downloading' || t.status === 'pending').length;
-                        const completeCount = group.tasks.filter(t => t.status === 'completed').length;
 
                         return (
                             <div key={seriesId} className={`series-block ${isExpanded ? 'expanded' : ''}`}>
@@ -122,28 +174,111 @@ const DownloadsPage: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="series-content">
-                                    <div className="tasks-list">
-                                        {group.tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(task => (
-                                            <div key={task.id} className={`task-card ${task.status}`}>
-                                                <div className="task-header">
-                                                    <span className="task-name">{task.id.split('-').pop() || 'Chapter'}</span>
-                                                    <span className={`task-status ${task.status}`}>{task.status.toUpperCase()}</span>
+                                    {group.tasks.some(t => t.status === 'failed') && (
+                                        <div className={`failed-subgroup ${expandedFailedGroups.has(seriesId) ? 'expanded' : ''}`}>
+                                            <div className="subgroup-header">
+                                                <div className="subgroup-info" onClick={(e) => { e.stopPropagation(); toggleFailedGroup(seriesId); }}>
+                                                    <span>⚠️ Failed Downloads ({group.tasks.filter(t => t.status === 'failed').length})</span>
+                                                    <span className="expand-icon">{expandedFailedGroups.has(seriesId) ? '▼' : '▶'}</span>
                                                 </div>
-                                                {(task.status === 'downloading' || task.status === 'pending') && (
-                                                    <div className="progress-container">
-                                                        <div className="progress-bar" style={{ width: `${task.progress}%` }}></div>
-                                                    </div>
-                                                )}
-                                                <div className="task-footer">
-                                                    {task.status === 'downloading' ? (
-                                                        <span>{task.progress}% completed</span>
-                                                    ) : (
-                                                        <span>{new Date(task.createdAt).toLocaleDateString()}</span>
-                                                    )}
-                                                    <span className="task-path" title={task.downloadPath}>{task.downloadPath}</span>
-                                                </div>
+                                                <button
+                                                    className="retry-all-btn"
+                                                    onClick={(e) => { e.stopPropagation(); retryAllFailed(seriesId, group.tasks); }}
+                                                    title="Retry All Failed"
+                                                >
+                                                    Retry All Failed 🔄
+                                                </button>
                                             </div>
-                                        ))}
+                                            {expandedFailedGroups.has(seriesId) && (
+                                                <div className="tasks-list">
+                                                    {group.tasks
+                                                        .filter(t => t.status === 'failed')
+                                                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                                        .map(task => (
+                                                            <div key={task.id} className={`task-card ${task.status}`}>
+                                                                <div className="task-header">
+                                                                    <span className="task-name">{task.id.split('-').pop() || 'Chapter'}</span>
+                                                                    <div className="task-actions">
+                                                                        <button
+                                                                            className="action-btn retry"
+                                                                            onClick={(e) => { e.stopPropagation(); retryTask(task.id); }}
+                                                                            title="Retry"
+                                                                        >
+                                                                            🔄
+                                                                        </button>
+                                                                        <button
+                                                                            className="action-btn cancel"
+                                                                            onClick={(e) => { e.stopPropagation(); cancelTask(task.id); }}
+                                                                            title="Cancel/Remove"
+                                                                        >
+                                                                            ❌
+                                                                        </button>
+                                                                        <span className={`task-status ${task.status}`}>{task.status.toUpperCase()}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="task-footer">
+                                                                    <span>{new Date(task.createdAt).toLocaleDateString()}</span>
+                                                                    <span className="task-path" title={task.downloadPath}>{task.downloadPath}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="tasks-list">
+                                        {group.tasks
+                                            .filter(t => t.status !== 'failed')
+                                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                            .map(task => (
+                                                <div key={task.id} className={`task-card ${task.status}`}>
+                                                    <div className="task-header">
+                                                        <span className="task-name">{task.id.split('-').pop() || 'Chapter'}</span>
+                                                        <div className="task-actions">
+                                                            {task.status === 'downloading' || task.status === 'pending' ? (
+                                                                <button
+                                                                    className="action-btn pause"
+                                                                    onClick={(e) => { e.stopPropagation(); pauseTask(task.id); }}
+                                                                    title="Pause"
+                                                                >
+                                                                    ⏸️
+                                                                </button>
+                                                            ) : task.status === 'paused' ? (
+                                                                <button
+                                                                    className="action-btn resume"
+                                                                    onClick={(e) => { e.stopPropagation(); resumeTask(task.id); }}
+                                                                    title="Resume"
+                                                                >
+                                                                    ▶️
+                                                                </button>
+                                                            ) : null}
+                                                            {(task.status === 'downloading' || task.status === 'pending' || task.status === 'paused') && (
+                                                                <button
+                                                                    className="action-btn cancel"
+                                                                    onClick={(e) => { e.stopPropagation(); cancelTask(task.id); }}
+                                                                    title="Cancel/Remove"
+                                                                >
+                                                                    ❌
+                                                                </button>
+                                                            )}
+                                                            <span className={`task-status ${task.status}`}>{task.status.toUpperCase()}</span>
+                                                        </div>
+                                                    </div>
+                                                    {(task.status === 'downloading' || task.status === 'pending' || task.status === 'paused') && (
+                                                        <div className="progress-container">
+                                                            <div className={`progress-bar ${task.status}`} style={{ width: `${task.progress}%` }}></div>
+                                                        </div>
+                                                    )}
+                                                    <div className="task-footer">
+                                                        {task.status === 'downloading' || task.status === 'paused' ? (
+                                                            <span>{task.progress}% completed</span>
+                                                        ) : (
+                                                            <span>{new Date(task.createdAt).toLocaleDateString()}</span>
+                                                        )}
+                                                        <span className="task-path" title={task.downloadPath}>{task.downloadPath}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
                                 </div>
                             </div>

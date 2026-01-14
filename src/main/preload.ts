@@ -23,6 +23,10 @@ export interface ElectronAPI {
       basePath: string;
     }) => Promise<string>;
     getDownloadTasks: () => Promise<any[]>;
+    pauseDownload: (taskId: string) => Promise<void>;
+    resumeDownload: (taskId: string) => Promise<void>;
+    cancelDownload: (taskId: string) => Promise<void>;
+    retryDownload: (taskId: string) => Promise<void>;
     scanLocalDownloads: (basePath: string) => Promise<any[]>;
   };
   on: (channel: string, callback: (...args: any[]) => void) => () => void;
@@ -62,6 +66,10 @@ const electronAPI: ElectronAPI = {
     getChapterPages: (chapterUrl: string, seriesId?: string) => logIpc('scraper:getChapterPages', chapterUrl, seriesId),
     downloadChapter: (params: any) => logIpc('scraper:downloadChapter', params),
     getDownloadTasks: () => logIpc('scraper:getDownloadTasks'),
+    pauseDownload: (taskId: string) => logIpc('scraper:pauseDownload', taskId),
+    resumeDownload: (taskId: string) => logIpc('scraper:resumeDownload', taskId),
+    cancelDownload: (taskId: string) => logIpc('scraper:cancelDownload', taskId),
+    retryDownload: (taskId: string) => logIpc('scraper:retryDownload', taskId),
     scanLocalDownloads: (basePath: string) => logIpc('scraper:scanLocalDownloads', basePath),
   },
   on: (channel: string, callback: (...args: any[]) => void) => {

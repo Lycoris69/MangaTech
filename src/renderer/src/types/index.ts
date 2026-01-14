@@ -70,8 +70,10 @@ export interface UserLibrary {
 export interface DownloadTask {
   id: string
   seriesId: string
+  seriesTitle?: string
   chapterIds: string[]
-  status: 'pending' | 'downloading' | 'completed' | 'failed'
+  chapterTitle?: string
+  status: 'pending' | 'downloading' | 'completed' | 'failed' | 'paused'
   progress: number
   estimatedTimeRemaining: number
   downloadPath: string

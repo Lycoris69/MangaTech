@@ -36,6 +36,7 @@ export interface WebScrapingService {
   getLatestReleases(page?: number): Promise<any[]>
   getChapterPages(chapterId: string): Promise<PageUrl[]>
   validateSource(sourceUrl: string): Promise<boolean>
+  invalidateCache(type: 'series' | 'chapter' | 'search', id?: string): Promise<void>
 }
 
 // Base scraper class with common functionality
@@ -233,6 +234,7 @@ export abstract class BaseScraper implements WebScrapingService {
   abstract getTrendingContent(): Promise<TrendingContent>
   abstract getLatestReleases(page?: number): Promise<any[]>
   abstract getChapterPages(chapterId: string): Promise<PageUrl[]>
+  abstract invalidateCache(type: 'series' | 'chapter' | 'search', id?: string): Promise<void>
 }
 
 // Error types for web scraping
