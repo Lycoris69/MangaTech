@@ -26,8 +26,7 @@ describe('LibraryService', () => {
       readingMode: 'single-page',
       zoomLevel: 1.0,
       autoPreload: true,
-      downloadQuality: 'high',
-      notificationsEnabled: true
+      downloadQuality: 'high'
     }
   };
 
@@ -42,8 +41,8 @@ describe('LibraryService', () => {
     mockStorageService = (libraryService as any).storageService as jest.Mocked<StorageService>;
 
     // Setup default mock implementations
-    mockStorageService.loadUserLibrary = jest.fn().mockResolvedValue({ ...mockUserLibrary });
-    mockStorageService.saveUserLibrary = jest.fn().mockResolvedValue(undefined);
+    mockStorageService.loadUserLibrary.mockResolvedValue({ ...mockUserLibrary });
+    mockStorageService.saveUserLibrary.mockResolvedValue(undefined);
   });
 
   describe('favorites management', () => {
@@ -57,8 +56,7 @@ describe('LibraryService', () => {
         expect.objectContaining({
           favorites: expect.arrayContaining([
             expect.objectContaining({
-              seriesId,
-              notificationsEnabled: true
+              seriesId
             })
           ])
         })
@@ -69,8 +67,7 @@ describe('LibraryService', () => {
       const seriesId = 'test-series-1';
       const existingFavorite: FavoriteSeries = {
         seriesId,
-        dateAdded: new Date(),
-        notificationsEnabled: true
+        dateAdded: new Date()
       };
 
       const libraryWithFavorite = {
@@ -89,8 +86,7 @@ describe('LibraryService', () => {
       const seriesId = 'test-series-1';
       const existingFavorite: FavoriteSeries = {
         seriesId,
-        dateAdded: new Date(),
-        notificationsEnabled: true
+        dateAdded: new Date()
       };
 
       const libraryWithFavorite = {
@@ -113,13 +109,11 @@ describe('LibraryService', () => {
       const favorites: FavoriteSeries[] = [
         {
           seriesId: 'series-1',
-          dateAdded: new Date(),
-          notificationsEnabled: true
+          dateAdded: new Date()
         },
         {
           seriesId: 'series-2',
-          dateAdded: new Date(),
-          notificationsEnabled: false
+          dateAdded: new Date()
         }
       ];
 
@@ -139,8 +133,7 @@ describe('LibraryService', () => {
       const seriesId = 'test-series-1';
       const existingFavorite: FavoriteSeries = {
         seriesId,
-        dateAdded: new Date(),
-        notificationsEnabled: true
+        dateAdded: new Date()
       };
 
       const libraryWithFavorite = {
@@ -164,6 +157,33 @@ describe('LibraryService', () => {
       const result = await libraryService.toggleFavorite(seriesId);
       expect(typeof result).toBe('boolean');
       expect(mockStorageService.loadUserLibrary).toHaveBeenCalled();
+    });
+  });
+
+  describe('downloads management', () => {
+    test('should clear all downloads', async () => {
+      // Setup initial state with downloads
+      const libraryWithDownloads = {
+        ...mockUserLibrary,
+        downloads: [
+          {
+            seriesId: 'series-1',
+            downloadPath: '/path/to/series',
+            downloadDate: new Date(),
+            chapters: []
+          }
+        ]
+      };
+
+      mockStorageService.loadUserLibrary.mockResolvedValue(libraryWithDownloads);
+
+      await libraryService.clearDownloads();
+
+      expect(mockStorageService.saveUserLibrary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          downloads: []
+        })
+      );
     });
   });
 

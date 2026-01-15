@@ -107,14 +107,19 @@ export class SearchInterface {
       await this.rateLimiter.acquireToken()
 
       // Build search URL
-      const searchUrl = this.urlManager.buildSearchUrl(trimmedQuery)
+      let searchUrl: string
+      if (trimmedQuery === 'GENRE_SEARCH' && options.filterBy?.genres?.[0]) {
+        searchUrl = this.urlManager.buildGenreUrl(options.filterBy.genres[0])
+      } else {
+        searchUrl = this.urlManager.buildSearchUrl(trimmedQuery)
+      }
 
       // Make HTTP request
       const response = await this.axiosInstance.get(searchUrl)
       const $ = cheerio.load(response.data)
 
       // Parse search results
-      const results = this.parseSearchResults($, trimmedQuery)
+      const results = this.parseSearchResults($, trimmedQuery === 'GENRE_SEARCH' ? '' : trimmedQuery)
 
       // Apply filters and sorting
       const filteredResults = this.applyFiltersAndSorting(results, options)
@@ -303,6 +308,17 @@ export class SearchInterface {
           status = 'hiatus'
         }
 
+        // Extract latest chapter
+        const chapterElement = $item.find('.chapter a, .latest-chapter a, .meta-item:contains("Chapter")').first()
+        const latestChapterText = chapterElement.text().trim()
+        const latestChapterMatch = latestChapterText.match(/(?:chapter|ch\.?|Ch\.?)\s*(\d+(?:\.\d+)?)/i)
+        const latestChapter = latestChapterMatch ? latestChapterMatch[1] : (latestChapterText || undefined)
+
+        // Extract last updated date
+        const dateElement = $item.find('.post-on, .chapter-release-date, .date, .time, .updated').first()
+        const dateText = dateElement.text().trim()
+        const lastUpdated = this.parseRelativeDate(dateText) || undefined
+
         // Extract rating
         const ratingElement = $item.find('.rating, .score, .manga-rating')
         let rating = 0
@@ -331,7 +347,9 @@ export class SearchInterface {
           genres,
           status,
           rating,
-          sourceUrl: seriesUrl
+          sourceUrl: seriesUrl,
+          lastUpdated,
+          latestChapter
         }
 
         // Validate result
@@ -462,6 +480,63 @@ export class SearchInterface {
     }
 
     return suggestions
+  }
+
+  /**
+   * Parse relative date string into Date object
+   */
+  private parseRelativeDate(dateText: string): Date | null {
+    if (!dateText) return null
+
+    try {
+      const trimmed = dateText.trim().toLowerCase()
+      const now = new Date()
+
+      // Handle relative dates like "2 hours ago", "1 day ago"
+      const relativeMatch = trimmed.match(/(\d+)\s*(minute|hour|day|week|month|year)s?\s*ago/i)
+      if (relativeMatch) {
+        const amount = parseInt(relativeMatch[1])
+        const unit = relativeMatch[2].toLowerCase()
+
+        switch (unit) {
+          case 'minute':
+            return new Date(now.getTime() - amount * 60 * 1000)
+          case 'hour':
+            return new Date(now.getTime() - amount * 60 * 60 * 1000)
+          case 'day':
+            now.setDate(now.getDate() - amount)
+            return now
+          case 'week':
+            now.setDate(now.getDate() - amount * 7)
+            return now
+          case 'month':
+            now.setMonth(now.getMonth() - amount)
+            return now
+          case 'year':
+            now.setFullYear(now.getFullYear() - amount)
+            return now
+        }
+      }
+
+      // Handle "today", "yesterday"
+      if (trimmed.includes('today')) {
+        return now
+      }
+      if (trimmed.includes('yesterday')) {
+        now.setDate(now.getDate() - 1)
+        return now
+      }
+
+      // Try parsing as standard date
+      const parsed = new Date(dateText)
+      if (!isNaN(parsed.getTime())) {
+        return parsed
+      }
+
+      return null
+    } catch (error) {
+      return null
+    }
   }
 
   /**

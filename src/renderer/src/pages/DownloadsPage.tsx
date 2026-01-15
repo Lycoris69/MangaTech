@@ -173,6 +173,23 @@ const DownloadsPage: React.FC = () => {
                                         <span className="stat-badge">{group.tasks.length} total</span>
                                     </div>
                                 </div>
+                                <div className="series-total-progress">
+                                    <div className="total-progress-bar">
+                                        <div
+                                            className="total-progress-fill"
+                                            style={{
+                                                width: `${(group.tasks.reduce((acc, t) => {
+                                                    // Count 'completed' as 100, 'pending' as 0
+                                                    // For 'downloading' or 'paused', use the actual progress
+                                                    const p = t.status === 'completed' ? 100 :
+                                                        (t.status === 'pending' || t.status === 'failed') ? 0 :
+                                                            t.progress;
+                                                    return acc + p;
+                                                }, 0) / (group.tasks.length * 100 || 1)) * 100}%`
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
                                 <div className="series-content">
                                     {group.tasks.some(t => t.status === 'failed') && (
                                         <div className={`failed-subgroup ${expandedFailedGroups.has(seriesId) ? 'expanded' : ''}`}>

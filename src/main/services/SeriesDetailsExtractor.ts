@@ -543,12 +543,25 @@ export class SeriesDetailsExtractor {
   /**
    * Extract last updated date
    */
+  /**
+   * Extract last updated date
+   * 
+   * Strategy:
+   * 1. Collect potential dates from series metadata (e.g. "Last Updated" fields).
+   * 2. Collect dates from the first few chapters (to handle pinned chapters or missing metadata).
+   * 3. Return the most recent (max) date found.
+   */
   private extractLastUpdated($: cheerio.CheerioAPI): Date {
+    const candidateDates: Date[] = []
+
+    // 1. Metadata selectors
     const dateSelectors = [
       '.last-updated',
       '.updated-date',
       '.latest-update',
-      '[data-field="updated"]'
+      '[data-field="updated"]',
+      '.post-on.font-meta',
+      '.post-status .post-content_item:contains("Last Updated") .summary-content'
     ]
 
     for (const selector of dateSelectors) {
@@ -557,13 +570,36 @@ export class SeriesDetailsExtractor {
         const dateText = element.text().trim()
         const parsedDate = this.parseDate(dateText)
         if (parsedDate) {
-          SeriesDetailsExtractor.logger.debug('Extracted last updated', { date: parsedDate, selector })
-          return parsedDate
+          candidateDates.push(parsedDate)
         }
       }
     }
 
-    return new Date() // Default to current date
+    // 2. Chapter list check (check first 3 items to avoid pinned old chapters)
+    const chapterDateElements = $('.chapter-release-date i, .chapter-release-date, .chapter-item .date').slice(0, 3)
+    chapterDateElements.each((_, el) => {
+      const dateText = $(el).text().trim()
+      const parsedDate = this.parseDate(dateText)
+      if (parsedDate) {
+        candidateDates.push(parsedDate)
+      }
+    })
+
+    if (candidateDates.length === 0) {
+      return new Date(); // Default
+    }
+
+    // 3. Find max date
+    // Sort descending
+    candidateDates.sort((a, b) => b.getTime() - a.getTime())
+
+    const bestDate = candidateDates[0]
+    SeriesDetailsExtractor.logger.debug('Extracted last updated (max strategy)', {
+      bestDate,
+      candidates: candidateDates.length
+    })
+
+    return bestDate
   }
 
   /**
@@ -656,7 +692,7 @@ export class SeriesDetailsExtractor {
       }
 
       // For date, check the release date element (skip if not found - faster)
-      const dateElement = element.find('.chapter-release-date').first()
+      const dateElement = element.find('.chapter-release-date i, .chapter-release-date').first()
       let publishDate = new Date()
       if (dateElement.length > 0) {
         const dateText = dateElement.text().trim()

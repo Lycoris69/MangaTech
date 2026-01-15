@@ -32,8 +32,19 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({
 }) => {
     const formatDate = (date: Date | string | undefined) => {
         if (!date) return 'Unknown date';
-        if (typeof date === 'string') return date;
-        return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        let dateObj: Date;
+        if (typeof date === 'string') {
+            // Check if it's a relative date string (e.g., "2 hours ago")
+            if (date.toLowerCase().includes('ago') || date.toLowerCase().includes('today') || date.toLowerCase().includes('yesterday')) {
+                return date;
+            }
+            // Try to parse as ISO date string
+            dateObj = new Date(date);
+            if (isNaN(dateObj.getTime())) return date; // Return original string if not a valid date
+        } else {
+            dateObj = date;
+        }
+        return dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
     return (
@@ -77,12 +88,14 @@ export const SeriesCard: React.FC<SeriesCardProps> = ({
                         </span>
                     </div>
 
-                    <div className="stat-item" title="Last Updated">
-                        <span className="icon">📅</span>
-                        <span className="value">
-                            {lastUpdated ? formatDate(lastUpdated) : 'Unknown'}
-                        </span>
-                    </div>
+                    {lastUpdated && (
+                        <div className="stat-item" title="Last Updated">
+                            <span className="icon">📅</span>
+                            <span className="value">
+                                {formatDate(lastUpdated)}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {actions && (

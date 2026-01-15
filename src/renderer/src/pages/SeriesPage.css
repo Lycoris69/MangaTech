@@ -569,3 +569,43 @@
   box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
   transform: translateY(-2px);
 }
+
+/* Batch Progress Bar */
+.batch-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 250px;
+  margin-right: 10px;
+}
+
+.batch-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cyber-text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.batch-progress-info span:last-child {
+  color: var(--cyber-cyan);
+  font-family: 'Orbitron', monospace;
+}
+
+.batch-progress-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(157, 78, 221, 0.2);
+}
+
+.batch-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyber-purple) 0%, var(--cyber-cyan) 100%);
+  box-shadow: 0 0 10px var(--cyber-cyan);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+}

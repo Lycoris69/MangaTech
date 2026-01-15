@@ -178,4 +178,20 @@ export class URLManager {
     // Handle relative paths (assume they're relative to base)
     return `${this.baseUrl}/${url}`
   }
+
+  /**
+   * Builds genre URL for manhwaz.com
+   * @param genreSlug - Genre identifier/slug
+   * @param page - Page number
+   * @returns Formatted genre URL
+   */
+  buildGenreUrl(genreSlug: string, page: number = 1): string {
+    if (!genreSlug || typeof genreSlug !== 'string' || genreSlug.trim() === '') {
+      throw new Error('Genre slug must be a non-empty string')
+    }
+
+    const cleanSlug = genreSlug.trim().replace(/^\/+|\/+$/g, '')
+    const url = `${this.baseUrl}/genre/${cleanSlug}`
+    return page > 1 ? `${url}/?page=${page}` : url
+  }
 }

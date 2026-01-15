@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Series, Chapter, UserLibrary } from '../types';
+import { Series, Chapter, UserLibrary, DownloadTask } from '../types';
 import { StorageService } from '../services/StorageService';
 import { LibraryService } from '../services/LibraryService';
 import OnlineReader from '../components/OnlineReader';
@@ -27,6 +27,8 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
   const [downloadedChapterIds, setDownloadedChapterIds] = useState<Set<string>>(new Set());
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [isBatchDownloading, setIsBatchDownloading] = useState(false);
+  const [totalBatchChapters, setTotalBatchChapters] = useState(0);
+  const [completedBatchChapters, setCompletedBatchChapters] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const storageService = new StorageService();
@@ -55,6 +57,93 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
       }
     }
   }, [userLibrary, series]);
+
+  // Restore active downloads on mount/series load
+  useEffect(() => {
+    if (series?.id) {
+      loadActiveDownloads();
+    }
+  }, [series?.id]);
+
+  const loadActiveDownloads = async () => {
+    if (!series) return;
+    try {
+      const tasks: DownloadTask[] = await window.electronAPI.scraper.getDownloadTasks();
+      const seriesTasks = tasks.filter(t => t.seriesId === series.id && (t.status === 'pending' || t.status === 'downloading'));
+
+      if (seriesTasks.length > 0) {
+        setIsBatchDownloading(true);
+        setTotalBatchChapters(seriesTasks.length); // Approximation, ideally we'd know the original batch size
+
+        // Find the currently downloading task
+        const activeTask = seriesTasks.find(t => t.status === 'downloading');
+        if (activeTask) {
+          // Parse chapter ID from task ID (format: seriesId-chapterId)
+          const chapterId = activeTask.id.replace(`${series.id}-`, '');
+          setDownloadingChapterId(chapterId);
+          setDownloadProgress(activeTask.progress);
+        } else {
+          // If all pending, set the first one
+          const firstPending = seriesTasks[0];
+          const chapterId = firstPending.id.replace(`${series.id}-`, '');
+          setDownloadingChapterId(chapterId);
+          setDownloadProgress(0);
+        }
+
+        // Count completed based on what's NOT in the pending list but IS in the original batch? 
+        // We can't know the original batch size easily without persisting it elsewhere.
+        // For now, let's just show progress of the *remaining* queue or what we can see.
+        // A better approach for "Download All" persistence would be to store the "Batch ID" or similar.
+        // But for this fix, we'll just ensure the progress bar shows *something* active.
+      }
+    } catch (err) {
+      console.error('Failed to load active downloads:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Listen for download progress updates from the main process
+    const unsubscribe = window.electronAPI.on('download:tasks-updated', (tasks: DownloadTask[]) => {
+      if (!series) return;
+
+      // Look for tasks related to this series
+      const seriesTasks = tasks.filter(t => t.seriesId === series.id);
+      const activeTask = seriesTasks.find(t => t.status === 'downloading');
+
+      if (activeTask) {
+        // Parse chapter ID
+        const chapterId = activeTask.id.replace(`${series.id}-`, '');
+
+        // If we weren't tracking this download, start tracking it (persistence fix)
+        if (downloadingChapterId !== chapterId) {
+          setDownloadingChapterId(chapterId);
+        }
+
+        setDownloadProgress(activeTask.progress);
+
+        // Update batch counts if we are in batch mode
+        if (isBatchDownloading) {
+          // If we just finished a chapter (it's gone from pending/downloading to completed, 
+          // but we only get the *current* list often), we need to track completion.
+          // Actually, the listener receives the *active* state.
+          // A better way for the progress bar is:
+          // We know which chapters we *wanted* to download.
+          // We can check `downloadedChapterIds` vs our `chapters` list to see how many are done.
+        }
+      } else if (downloadingChapterId) {
+        // If we were downloading something and it's no longer "downloading" (e.g. completed or failed)
+        // Check if it completed
+        const completedTask = tasks.find(t => t.id === `${series.id}-${downloadingChapterId}` && t.status === 'completed');
+        if (completedTask) {
+          setDownloadProgress(100);
+          setCompletedBatchChapters(prev => prev + 1);
+          setDownloadingChapterId(null); // Clear it so we pick up the next one
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [series, downloadingChapterId, isBatchDownloading]);
 
   const loadSeriesData = async (id: string) => {
     try {
@@ -184,6 +273,8 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
         return;
       }
 
+      setTotalBatchChapters(toDownload.length);
+      setCompletedBatchChapters(0);
       console.log(`Starting batch download of ${toDownload.length} chapters`);
 
       for (const chapter of toDownload) {
@@ -200,9 +291,11 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
           });
 
           await libraryService.registerDownload(series.id, chapter.id, result);
+          setCompletedBatchChapters(prev => prev + 1);
         } catch (err) {
           console.error(`Failed to download chapter ${chapter.chapterNumber}:`, err);
           // Continue with next chapter even if one fails
+          setCompletedBatchChapters(prev => prev + 1);
         }
       }
 
@@ -214,6 +307,8 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
     } finally {
       setIsBatchDownloading(false);
       setDownloadingChapterId(null);
+      setTotalBatchChapters(0);
+      setCompletedBatchChapters(0);
     }
   };
 
@@ -243,6 +338,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
   });
 
   const displayedChapters = isExpanded ? allSortedChapters : allSortedChapters.slice(0, 20);
+  const allChaptersDownloaded = chapters.length > 0 && chapters.every(c => downloadedChapterIds.has(c.id));
 
   return (
     <div className="series-page">
@@ -305,13 +401,31 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
         <div className="chapters-header">
           <h3>Chapters ({chapters.length})</h3>
           <div className="chapters-header-actions">
-            <button
-              className={`download-all-btn ${isBatchDownloading ? 'loading' : ''}`}
-              onClick={handleDownloadAll}
-              disabled={isBatchDownloading || !!downloadingChapterId}
-            >
-              {isBatchDownloading ? 'Downloading All...' : 'Download All'}
-            </button>
+            {isBatchDownloading && (
+              <div className="batch-progress-container">
+                <div className="batch-progress-info">
+                  <span>Downloading {completedBatchChapters + 1} / {totalBatchChapters}</span>
+                  <span>{downloadProgress}%</span>
+                </div>
+                <div className="batch-progress-bar-bg">
+                  <div
+                    className="batch-progress-bar-fill"
+                    style={{
+                      width: `${((completedBatchChapters + (downloadProgress / 100)) / totalBatchChapters) * 100}%`
+                    }}
+                  ></div>
+                </div>
+              </div>
+            )}
+            {!allChaptersDownloaded && (
+              <button
+                className={`download-all-btn ${isBatchDownloading ? 'loading' : ''}`}
+                onClick={handleDownloadAll}
+                disabled={isBatchDownloading || !!downloadingChapterId}
+              >
+                {isBatchDownloading ? 'Downloading...' : 'Download All'}
+              </button>
+            )}
             <button
               className="sort-btn"
               onClick={() => setSortDesc(!sortDesc)}

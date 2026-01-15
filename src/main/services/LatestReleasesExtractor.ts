@@ -290,7 +290,7 @@ export class LatestReleasesExtractor {
       }
 
       // Extract publish date
-      const dateSelectors = ['.date', '.publish-date', '.updated', '.time', '.chapter-date']
+      const dateSelectors = ['.post-on.font-meta', '.date', '.publish-date', '.updated', '.time', '.chapter-date']
       let publishDate = new Date()
 
       for (const selector of dateSelectors) {

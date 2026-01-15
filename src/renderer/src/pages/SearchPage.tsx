@@ -25,17 +25,20 @@ const SearchPage: React.FC<SearchPageProps> = () => {
 
   useEffect(() => {
     const query = searchParams.get('q');
+
     if (query && query !== searchQuery) {
-      setSearchQuery(query);
-      performSearch(query);
+      setSearchQuery(query || '');
+      performSearch(query || '');
     } else if (query) {
       // Initial load with query param
-      performSearch(query);
+      performSearch(query || '');
     }
   }, [searchParams]);
 
   const performSearch = async (query: string) => {
-    if (!query.trim()) {
+    const activeQuery = query.trim();
+
+    if (!activeQuery) {
       return;
     }
 
@@ -44,14 +47,21 @@ const SearchPage: React.FC<SearchPageProps> = () => {
       setError(null);
       setHasSearched(true);
 
-      console.log(`Searching for: ${query}`);
-      const results = await window.electronAPI.scraper.searchSeries(query.trim());
+      console.log(`Searching for: "${activeQuery}"`);
+
+      // If we have no query, we return empty results
+      if (!activeQuery) {
+        setSearchResults([]);
+        return;
+      }
+
+      const results = await window.electronAPI.scraper.searchSeries(activeQuery, {});
       console.log('Search results:', results);
 
       setSearchResults(results);
 
       if (results.length === 0) {
-        showSuccess('Search completed', `No results found for "${query}".`);
+        showSuccess('Search completed', `No results found for your query.`);
       }
     } catch (err: any) {
       console.error('Search failed:', err);
@@ -91,7 +101,6 @@ const SearchPage: React.FC<SearchPageProps> = () => {
 
     if (query) {
       setSearchParams({ q: query });
-      // performSearch is triggered by useEffect on searchParams change
     }
   };
 
@@ -103,26 +112,28 @@ const SearchPage: React.FC<SearchPageProps> = () => {
     <div className="search-page">
       <div className="search-header">
         <h1>Search Database</h1>
-        <p>Find manga by title, author, or genre</p>
+        <p>Find manga by title</p>
       </div>
 
       <form className="search-form" onSubmit={handleSearch}>
-        <div className="search-input-container">
-          <input
-            type="text"
-            placeholder="Enter keywords..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            className="search-button"
-            disabled={loading || !searchQuery.trim()}
-          >
-            {loading ? 'Scanning...' : 'Search'}
-          </button>
+        <div className="search-controls">
+          <div className="search-input-container">
+            <input
+              type="text"
+              placeholder="Enter keywords..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              className="search-button"
+              disabled={loading || !searchQuery.trim()}
+            >
+              {loading ? 'Scanning...' : '🔍'}
+            </button>
+          </div>
         </div>
       </form>
 

@@ -33,7 +33,14 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadLibraryData();
+    loadLibraryData().then(() => {
+      // Trigger background refresh of favorites to ensure dates are up to date
+      // This fixes the issue where stored metadata has stale/incorrect dates
+      libraryService.refreshFavoritesMetadata().then(() => {
+        console.log('Background refresh completed, reloading UI...');
+        loadLibraryData(true); // silent refresh
+      });
+    });
   }, []);
 
   const loadLibraryData = async (isRefresh = false) => {
@@ -204,6 +211,19 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
     }
   };
 
+  const handleResetScan = async () => {
+    try {
+      if (confirm('Are you sure you want to clear all downloads from your library? This will not delete the files from your computer, only remove them from the library view.')) {
+        await libraryService.clearDownloads();
+        setDownloads([]);
+        showSuccess('Downloads cleared', 'All downloads have been removed from your library.');
+      }
+    } catch (err) {
+      console.error('Failed to clear downloads:', err);
+      showError('Failed to clear downloads', 'An error occurred while clearing downloads.');
+    }
+  };
+
   const getSeriesById = (seriesId: string): Series | null => {
     return seriesMetadata.find(series => series.id === seriesId) || null;
   };
@@ -367,13 +387,23 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
           <section className="downloads-section">
             <div className="section-header">
               <h3>Downloads ({downloads.length})</h3>
-              <button
-                onClick={handleScanDownloads}
-                disabled={refreshing}
-                className="scan-button mini"
-              >
-                📂 Scan Downloads
-              </button>
+              <div className="section-actions">
+                <button
+                  onClick={handleResetScan}
+                  disabled={refreshing || downloads.length === 0}
+                  className="reset-button mini"
+                  style={{ marginRight: '10px' }}
+                >
+                  🔄 Reset Scan
+                </button>
+                <button
+                  onClick={handleScanDownloads}
+                  disabled={refreshing}
+                  className="scan-button mini"
+                >
+                  📂 Scan Downloads
+                </button>
+              </div>
             </div>
             {downloads.length === 0 ? (
               <div className="content-placeholder">
@@ -391,7 +421,6 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                         title={getDisplayTitle(download.seriesId, download.downloadPath)}
                         coverImageUrl={series?.coverImageUrl || ''}
                         totalChapters={download.chapters.length}
-                        lastUpdated={download.downloadDate}
                         status="Downloaded"
                         onClick={() => handleReadSeries(download.seriesId)}
                         customStat={`${download.chapters.length} DLs`}
@@ -446,7 +475,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                             <h4>{getDisplayTitle(progress.seriesId, download?.downloadPath)}</h4>
                             <p>Chapter {progress.chapterId.split('/').pop()?.replace('chapter-', '') || progress.chapterId}</p>
                             <p className="last-read-date">
-                              Last read: {progress.lastReadDate.toLocaleDateString()}
+                              Last read: {progress.lastReadDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                             </p>
                           </div>
                           <div className="progress-actions">

@@ -72,6 +72,34 @@ export class LibraryService {
   }
 
   /**
+   * Refresh metadata for all favorite series
+   */
+  async refreshFavoritesMetadata(): Promise<void> {
+    try {
+      const favorites = await this.getFavorites();
+      if (!window.electronAPI?.scraper) {
+        console.warn('Scraper API not available');
+        return;
+      }
+
+      console.log(`[LibraryService] Refreshing metadata for ${favorites.length} favorites...`);
+
+      // Process in batches or sequentially to ensure we don't overwhelm the scraper/IPC
+      for (const fav of favorites) {
+        try {
+          const details = await window.electronAPI.scraper.getSeriesDetails(fav.seriesId);
+          await this.storageService.upsertSeries(details);
+        } catch (err) {
+          console.error(`Failed to refresh metadata for ${fav.seriesId}:`, err);
+        }
+      }
+      console.log('[LibraryService] Favorites refresh completed');
+    } catch (error) {
+      console.error('Failed to refresh favorites metadata:', error);
+    }
+  }
+
+  /**
    * Toggle favorite status for a series
    */
   async toggleFavorite(seriesId: string): Promise<boolean> {
@@ -387,8 +415,20 @@ export class LibraryService {
       console.log('[LibraryService] Library saved successfully');
       return scannedSeries.length;
     } catch (error) {
-      console.error('[LibraryService] Import failed:', error);
       throw new Error(`Failed to import local downloads: ${error}`);
+    }
+  }
+
+  /**
+   * Clear all downloads from the library
+   */
+  async clearDownloads(): Promise<void> {
+    try {
+      const library = await this.storageService.loadUserLibrary();
+      library.downloads = [];
+      await this.storageService.saveUserLibrary(library);
+    } catch (error) {
+      throw new Error(`Failed to clear downloads: ${error}`);
     }
   }
 }
