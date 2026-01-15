@@ -172,31 +172,48 @@
 }
 
 /* Chapter Info & Page Indicator */
-.chapter-info {
+.reader-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: white;
-  font-size: 14px;
+}
+
+.series-title-header {
+  font-weight: 700;
+  font-size: 16px;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  color: var(--cyber-purple-bright, #d600ff);
+}
+
+.chapter-selector {
+  background: rgba(20, 20, 20, 0.8);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  max-width: 200px;
+  transition: border-color 0.2s;
+}
+
+.chapter-selector:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.chapter-selector option {
+  background: #111;
+  color: white;
 }
 
 .page-indicator {
-  color: white;
-  font-size: 14px;
-  min-width: 30px;
-  text-align: center;
-  font-weight: 600;
-}
-
-/* Page Input */
-.page-input {
-  width: 60px;
-  padding: 4px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  text-align: center;
-  font-size: 14px;
+  display: none;
+  /* Removed as per request */
 }
 
 .page-input:focus {

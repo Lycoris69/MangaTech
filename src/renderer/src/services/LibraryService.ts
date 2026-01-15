@@ -248,12 +248,20 @@ export class LibraryService {
       console.log(`[LibraryService] Scanned ${scannedSeries.length} series`);
 
       const library = await this.storageService.loadUserLibrary();
+      const allMetadata = await this.storageService.loadSeriesMetadata();
 
       for (const series of scannedSeries) {
         console.log(`[LibraryService] Processing series: ${series.title}`);
 
-        // 1. Try to find if this series exists in metadata by title or ID
+        // 1. Better metadata matching: Exact ID, then exact Title, then fuzzy Title
         let seriesMetadata = await this.storageService.getSeriesById(series.title);
+
+        if (!seriesMetadata) {
+          // Search all metadata by title (case-insensitive)
+          seriesMetadata = allMetadata.find(m =>
+            m.title.toLowerCase() === series.title.toLowerCase()
+          ) || null;
+        }
 
         // 2. If not found locally, try to search online
         if (!seriesMetadata) {
@@ -261,15 +269,13 @@ export class LibraryService {
           try {
             const searchResults = await window.electronAPI.scraper.searchSeries(series.title);
             if (searchResults && searchResults.length > 0) {
-              // Exact match or first result
               const match = searchResults.find(r => r.title.toLowerCase() === series.title.toLowerCase()) || searchResults[0];
-
-              // Fetch full details for the match
               const fullDetails = await window.electronAPI.scraper.getSeriesDetails(match.id);
               if (fullDetails) {
                 seriesMetadata = fullDetails;
                 console.log(`[LibraryService] Found online metadata for ${series.title} -> ${fullDetails.id}`);
                 await this.storageService.upsertSeries(fullDetails);
+                allMetadata.push(fullDetails); // Update local cache for remaining items
               }
             }
           } catch (searchError) {
@@ -281,7 +287,7 @@ export class LibraryService {
         if (!seriesMetadata) {
           console.log(`[LibraryService] Creating placeholder metadata for ${series.title}`);
           const placeholder: Series = {
-            id: series.title, // Use title as ID for now
+            id: series.title,
             title: series.title,
             author: 'Unknown Author',
             synopsis: 'Imported from local downloads.',
@@ -301,13 +307,18 @@ export class LibraryService {
 
           seriesMetadata = placeholder;
           await this.storageService.upsertSeries(seriesMetadata);
+          allMetadata.push(seriesMetadata);
         }
 
         if (!seriesMetadata) continue;
 
         const seriesId = seriesMetadata.id;
 
-        let downloadedSeries = library.downloads.find(d => d.seriesId === seriesId);
+        // 4. Find existing download entry (by ID OR Path) to prevent duplicates
+        let downloadedSeries = library.downloads.find(d =>
+          d.seriesId === seriesId || d.downloadPath === series.path
+        );
+
         if (!downloadedSeries) {
           downloadedSeries = {
             seriesId,
@@ -317,20 +328,21 @@ export class LibraryService {
           };
           library.downloads.push(downloadedSeries);
         } else {
-          // Update path if it changed
+          // Update details for existing entry
+          downloadedSeries.seriesId = seriesId;
           downloadedSeries.downloadPath = series.path;
         }
 
-        // Add chapters
-        for (const chapter of series.chapters) {
-          const chapterIndex = downloadedSeries.chapters.findIndex(c =>
-            (typeof c === 'string' ? c : c.id) === chapter.id
+        // 5. Merge chapters (avoiding internal duplicates)
+        for (const scannedChapter of series.chapters) {
+          const exists = downloadedSeries.chapters.some(existingChapter =>
+            (typeof existingChapter === 'string' ? existingChapter : existingChapter.id) === scannedChapter.id
           );
 
-          if (chapterIndex === -1) {
+          if (!exists) {
             downloadedSeries.chapters.push({
-              id: chapter.id,
-              path: chapter.path || '' // chapter.path should be available from scanLocalDownloads
+              id: scannedChapter.id,
+              path: scannedChapter.path || ''
             });
           }
         }

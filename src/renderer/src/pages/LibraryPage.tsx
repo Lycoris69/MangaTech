@@ -309,22 +309,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
         <div className="page-header">
           <h2>My Library</h2>
           <p>Manage your favorite series and downloaded content</p>
-          <div className="header-actions">
-            <button
-              onClick={() => loadLibraryData(true)}
-              disabled={refreshing}
-              className="refresh-button"
-            >
-              {refreshing ? 'Refreshing...' : '🔄 Refresh'}
-            </button>
-            <button
-              onClick={handleScanDownloads}
-              disabled={refreshing}
-              className="scan-button"
-            >
-              📂 Scan Downloads
-            </button>
-          </div>
+
 
         </div>
 
@@ -389,7 +374,16 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
 
           {/* Downloads Section */}
           <section className="downloads-section">
-            <h3>Downloads ({downloads.length})</h3>
+            <div className="section-header">
+              <h3>Downloads ({downloads.length})</h3>
+              <button
+                onClick={handleScanDownloads}
+                disabled={refreshing}
+                className="scan-button mini"
+              >
+                📂 Scan Downloads
+              </button>
+            </div>
             {downloads.length === 0 ? (
               <div className="content-placeholder">
                 <p>No downloaded content yet. Download some series to read offline!</p>

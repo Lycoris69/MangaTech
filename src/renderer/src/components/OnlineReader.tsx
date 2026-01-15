@@ -53,6 +53,7 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
   const [zoomLevel, setZoomLevel] = useState(initialZoom)
   const [imageCache, setImageCache] = useState<Map<string, string>>(new Map()) // Keyed by chapterId-pageNumber
   const [loadingPages, setLoadingPages] = useState<Set<string>>(new Set())
+  const [seriesName, setSeriesName] = useState<string>('')
 
   // Refs
   const libraryService = new LibraryService()
@@ -241,6 +242,7 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
             throw new Error('Series details not found. Please connect to the internet.')
           }
 
+          setSeriesName(seriesDetails.title || '')
           const parseChapterNum = (val: string) => {
             if (!val) return 0
             // Handle regional comma as decimal (e.g. 74,5 -> 74.5)
@@ -425,15 +427,29 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
       <div className={`reading-controls ${showControls ? 'visible' : 'hidden'}`}>
         <div className="controls-left">
           <button onClick={onClose} className="close-button">✕</button>
-          <span className="chapter-info">
-            {loadedChapters.find(c => c.chapterId === activeChapterId)?.title || 'Chapter'}: Page {currentPage}
-          </span>
-        </div>
-
-        <div className="controls-center">
-          <button onClick={goToPreviousPage} className="nav-button">←</button>
-          <span className="page-indicator">{currentPage}</span>
-          <button onClick={goToNextPage} className="nav-button">→</button>
+          <div className="reader-header-info">
+            <span className="series-title-header">{seriesName}</span>
+            <select
+              className="chapter-selector"
+              value={activeChapterId}
+              onChange={(e) => {
+                const targetId = e.target.value
+                const found = loadedChapters.find(c => c.chapterId === targetId)
+                if (found) {
+                  scrollToPage(targetId, 1)
+                } else {
+                  fetchAndAppendChapter(targetId, true)
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {[...allChapters].reverse().map(chap => (
+                <option key={chap.id} value={chap.id}>
+                  {chap.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="controls-right">

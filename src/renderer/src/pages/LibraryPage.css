@@ -68,11 +68,35 @@
 }
 
 .library-sections h3 {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   font-size: 1.5rem;
   color: #333;
-  border-bottom: 2px solid #4a9eff;
   padding-bottom: 0.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #4a9eff;
+}
+
+.scan-button.mini {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  background: #4a9eff;
+  border: 1px solid #357abd;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: none;
+}
+
+.scan-button.mini:hover {
+  background: #357abd;
+  transform: translateY(-1px);
 }
 
 .content-placeholder {
