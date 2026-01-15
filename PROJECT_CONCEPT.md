@@ -197,16 +197,17 @@ Cette application est développée dans un **cadre strictement personnel**, sans
 **Nouvelles Fonctionnalités Majeures**
 
 #### Système de Téléchargement
-- ❌ Téléchargement automatique des nouveaux chapitres
-- ❌ Téléchargement manuel à la demande
-- ❌ Queue de téléchargement avec priorités
-- ❌ Téléchargement en arrière-plan même app fermée
+- ✅ Téléchargement automatique des nouveaux chapitres
+- ✅ Téléchargement manuel à la demande
+- ✅ Queue de téléchargement avec priorités
+- ✅ Téléchargement en arrière-plan même app fermée
+- ✅ Table downloaded_chapters en base de données
 
 #### Lecture Hors-Ligne Complète
-- ❌ Mode hors-ligne avec interface adaptée
-- ❌ Synchronisation intelligente position de lecture
-- ❌ Gestion des chapitres téléchargés vs en ligne
-- ❌ Indicateurs visuels de statut (téléchargé/en ligne/en cours)
+- 🔄 Mode hors-ligne avec interface adaptée
+- 🔄 Synchronisation intelligente position de lecture
+- 🔄 Gestion des chapitres téléchargés vs en ligne
+- 🔄 Indicateurs visuels de statut (téléchargé/en ligne/en cours)
 
 #### Gestion Avancée du Stockage
 - ❌ Compression intelligente des images

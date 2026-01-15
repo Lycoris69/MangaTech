@@ -102,14 +102,14 @@
 **Afin de** lire sans connexion internet
 
 **Critères d'acceptation:**
-- [ ] Bouton de téléchargement par chapitre
-- [ ] Téléchargement en arrière-plan
-- [ ] Barre de progression du téléchargement
-- [ ] Notification de fin de téléchargement
-- [ ] Téléchargement de plusieurs chapitres
+- [x] Bouton de téléchargement par chapitre
+- [x] Téléchargement en arrière-plan
+- [x] Barre de progression du téléchargement
+- [x] Notification de fin de téléchargement
+- [x] Téléchargement de plusieurs chapitres
 - [x] Table downloaded_chapters en base de données
 
-**Statut:** 🔄 En développement
+**Statut:** ✅ Implémenté
 
 ---
 
@@ -135,13 +135,13 @@
 **Afin de** lire dans le métro, l'avion ou en zone de faible couverture
 
 **Critères d'acceptation:**
-- [ ] Indicateur visuel des chapitres téléchargés
+- [x] Indicateur visuel des chapitres téléchargés
 - [ ] Lecture fluide sans connexion
 - [ ] Synchronisation de la progression
 - [ ] Filtrage des mangas avec contenu hors-ligne
 - [ ] Mise à jour automatique en ligne
 
-**Statut:** 📝 À développer
+**Statut:** 🔄 En développement
 
 ---
 
@@ -199,15 +199,15 @@
 - [x] Suivi de progression (backend)
 
 ### Phase 2 - Expérience de Lecture 🔄
-- [ ] Écran de détails du manga
-- [ ] Lecteur de chapitres
-- [ ] Navigation automatique
-- [ ] Mode plein-écran
+- [x] Écran de détails du manga
+- [x] Lecteur de chapitres
+- [x] Navigation automatique
+- [x] Mode plein-écran
 - [ ] Continuer la lecture
 
-### Phase 3 - Automatisation 📝
-- [ ] Web scraping automatique
-- [ ] Détection de nouveaux chapitres
+### Phase 3 - Automatisation 🔄
+- [x] Web scraping automatique
+- [x] Détection de nouveaux chapitres
 - [ ] Notifications push actives
 
 ### Phase 4 - Mode Hors-ligne 📝

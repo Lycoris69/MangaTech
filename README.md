@@ -5,9 +5,10 @@ A desktop application for searching, downloading, and reading manga, manhua, and
 ## Features
 
 - 🔍 Search and discover manga from multiple sources
-- 📥 Download manga for offline reading
+- 📥 Download manga for offline reading (Batch downloads supported)
 - 📖 Full-screen reading mode with zoom functionality
 - 📚 Personal library management with favorites
+- 📊 Real-time Download Manager with progress tracking
 - 🔄 Dual interface modes (Navigation and Reading)
 - 🎯 Trending content discovery
 
