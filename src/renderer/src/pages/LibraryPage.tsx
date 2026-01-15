@@ -240,7 +240,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
       if (lastRead) {
         setReadingSeriesId(seriesId);
         setReadingChapterId(lastRead.chapterId);
-        setInitialPage(lastRead.pageNumber || 1);
+        setInitialPage(1);
         return;
       }
 
@@ -268,7 +268,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
   const handleReadChapterDirect = (seriesId: string, chapterId: string, pageNumber: number = 1) => {
     setReadingSeriesId(seriesId);
     setReadingChapterId(chapterId);
-    setInitialPage(pageNumber);
+    setInitialPage(1);
   };
 
   const handleCloseReader = () => {
@@ -307,7 +307,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
         onRetry={() => loadLibraryData()}
       >
         <div className="page-header">
-          <h2>My Library</h2>
+          <h1>My Library</h1>
           <p>Manage your favorite series and downloaded content</p>
 
 
@@ -343,15 +343,6 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                         onClick={() => navigate(`/series/${encodeURIComponent(favorite.seriesId)}`)}
                         actions={
                           <div className="card-actions-row">
-                            <button
-                              className="download-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadSeries(favorite.seriesId);
-                              }}
-                            >
-                              Download
-                            </button>
                             <button
                               className="remove-btn"
                               onClick={(e) => {
@@ -453,7 +444,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onEnterReading }) => {
                           </div>
                           <div className="progress-info">
                             <h4>{getDisplayTitle(progress.seriesId, download?.downloadPath)}</h4>
-                            <p>Chapter {progress.chapterId.split('/').pop()?.replace('chapter-', '') || progress.chapterId} - Page {progress.pageNumber}</p>
+                            <p>Chapter {progress.chapterId.split('/').pop()?.replace('chapter-', '') || progress.chapterId}</p>
                             <p className="last-read-date">
                               Last read: {progress.lastReadDate.toLocaleDateString()}
                             </p>

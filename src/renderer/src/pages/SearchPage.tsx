@@ -102,7 +102,7 @@ const SearchPage: React.FC<SearchPageProps> = () => {
   return (
     <div className="search-page">
       <div className="search-header">
-        <h2>Search Database</h2>
+        <h1>Search Database</h1>
         <p>Find manga by title, author, or genre</p>
       </div>
 

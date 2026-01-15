@@ -6,6 +6,7 @@ import SearchPage from './pages/SearchPage';
 import SeriesPage from './pages/SeriesPage';
 import LibraryPage from './pages/LibraryPage';
 import DownloadsPage from './pages/DownloadsPage';
+import ScrollManager from './components/ScrollManager';
 import './App.css';
 
 // Force CSS variables to be available
@@ -80,6 +81,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollManager />
       <SwipeController>
         <div
           className="App"

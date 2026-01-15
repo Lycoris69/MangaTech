@@ -5,23 +5,31 @@
 }
 
 .search-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 2rem;
-  padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  color: white;
+  padding: 1rem 0;
+  background: transparent;
+  border-radius: 0;
+  color: var(--cyber-text-primary);
 }
 
-.search-header h2 {
-  margin-bottom: 0.5rem;
-  font-size: 2rem;
-  font-weight: 700;
+.search-header h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3rem;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, var(--cyber-cyan), var(--cyber-purple));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 900;
 }
 
 .search-header p {
-  opacity: 0.9;
+  color: var(--cyber-text-secondary);
   font-size: 1.1rem;
+  font-family: 'Rajdhani', sans-serif;
 }
 
 .search-form {

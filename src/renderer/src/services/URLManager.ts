@@ -10,7 +10,7 @@
 export class URLManager {
   private readonly baseUrl = 'https://manhwaz.com'
   private readonly validHostnames = ['manhwaz.com', 'www.manhwaz.com']
-  
+
   /**
    * Validates if a URL belongs to manhwaz.com domain
    * @param url - URL to validate
@@ -20,7 +20,7 @@ export class URLManager {
     if (!url || typeof url !== 'string') {
       return false
     }
-    
+
     try {
       const parsedUrl = new URL(url)
       // Only allow https protocol for manhwaz.com
@@ -29,7 +29,7 @@ export class URLManager {
       return false
     }
   }
-  
+
   /**
    * Builds search URL for manhwaz.com
    * @param query - Search query string
@@ -39,11 +39,11 @@ export class URLManager {
     if (!query || typeof query !== 'string' || query.trim() === '') {
       throw new Error('Search query must be a non-empty string')
     }
-    
+
     const encodedQuery = encodeURIComponent(query.trim())
     return `${this.baseUrl}/search?s=${encodedQuery}`
   }
-  
+
   /**
    * Builds series URL for manhwaz.com
    * @param seriesId - Series identifier or full URL
@@ -53,7 +53,7 @@ export class URLManager {
     if (!seriesId || typeof seriesId !== 'string' || seriesId.trim() === '') {
       throw new Error('Series ID must be a non-empty string')
     }
-    
+
     // If already a full URL, validate and return
     if (seriesId.startsWith('http')) {
       if (!this.validateUrl(seriesId)) {
@@ -61,7 +61,7 @@ export class URLManager {
       }
       return seriesId
     }
-    
+
     // Build URL from series ID
     const cleanId = seriesId.trim().replace(/^\/+|\/+$/g, '')
     if (cleanId === '') {
@@ -69,7 +69,7 @@ export class URLManager {
     }
     return `${this.baseUrl}/webtoon/${cleanId}`
   }
-  
+
   /**
    * Builds chapter URL for manhwaz.com
    * @param chapterId - Chapter identifier or full URL
@@ -79,7 +79,7 @@ export class URLManager {
     if (!chapterId || typeof chapterId !== 'string' || chapterId.trim() === '') {
       throw new Error('Chapter ID must be a non-empty string')
     }
-    
+
     // If already a full URL, validate and return
     if (chapterId.startsWith('http')) {
       if (!this.validateUrl(chapterId)) {
@@ -87,7 +87,7 @@ export class URLManager {
       }
       return chapterId
     }
-    
+
     // Build URL from chapter ID
     const cleanId = chapterId.trim().replace(/^\/+|\/+$/g, '')
     if (cleanId === '') {
@@ -95,7 +95,7 @@ export class URLManager {
     }
     return `${this.baseUrl}/chapter/${cleanId}`
   }
-  
+
   /**
    * Gets the base URL for manhwaz.com
    * @returns Base URL string
@@ -108,10 +108,10 @@ export class URLManager {
    * Builds homepage URL for manhwaz.com
    * @returns Homepage URL
    */
-  buildHomepageUrl(): string {
-    return this.baseUrl
+  buildHomepageUrl(page: number = 1): string {
+    return page > 1 ? `${this.baseUrl}/?page=${page}` : this.baseUrl
   }
-  
+
   /**
    * Extracts series ID from a manhwaz.com series URL
    * @param url - Full series URL
@@ -121,7 +121,7 @@ export class URLManager {
     if (!this.validateUrl(url)) {
       return null
     }
-    
+
     try {
       const parsedUrl = new URL(url)
       const pathMatch = parsedUrl.pathname.match(/\/webtoon\/([^\/]+)/)
@@ -130,7 +130,7 @@ export class URLManager {
       return null
     }
   }
-  
+
   /**
    * Extracts chapter ID from a manhwaz.com chapter URL
    * @param url - Full chapter URL
@@ -140,7 +140,7 @@ export class URLManager {
     if (!this.validateUrl(url)) {
       return null
     }
-    
+
     try {
       const parsedUrl = new URL(url)
       const pathMatch = parsedUrl.pathname.match(/\/chapter\/([^\/]+)/)

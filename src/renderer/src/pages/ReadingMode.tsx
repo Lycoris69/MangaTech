@@ -154,7 +154,6 @@ const ReadingMode: React.FC<ReadingModeProps> = ({
 
           {currentState && (
             <div className="reading-state-info">
-              <span>Page {currentState.pageNumber}</span>
               <span>Zoom {Math.round(currentState.zoomLevel * 100)}%</span>
               <span className="auto-save-indicator">
                 ● Auto-saving

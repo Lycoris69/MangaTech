@@ -210,10 +210,11 @@ export class LibraryService {
         downloadedSeries.downloadPath = paths.seriesPath;
       }
 
-      // Use findIndex or similar to handle both string and object IDs
-      const chapterIndex = downloadedSeries.chapters.findIndex(c =>
-        (typeof c === 'string' ? c : c.id) === chapterId
-      );
+      // Use findIndex or similar to handle both string and object IDs, checking both ID and Path
+      const chapterIndex = downloadedSeries.chapters.findIndex(c => {
+        if (typeof c === 'string') return c === chapterId;
+        return c.id === chapterId || (c.path && c.path === paths.chapterPath);
+      });
 
       if (chapterIndex === -1) {
         downloadedSeries.chapters.push({
@@ -333,13 +334,47 @@ export class LibraryService {
           downloadedSeries.downloadPath = series.path;
         }
 
-        // 5. Merge chapters (avoiding internal duplicates)
-        for (const scannedChapter of series.chapters) {
-          const exists = downloadedSeries.chapters.some(existingChapter =>
+        // 5. Merge chapters and reconcile with disk
+        const scannedChapters = series.chapters as any[];
+        const scannedPaths = new Set(scannedChapters.map(c => c.path));
+
+        // Map existing chapters by path for quick lookup
+        const existingByPath = new Map<string, any>();
+        downloadedSeries.chapters.forEach(c => {
+          if (typeof c !== 'string' && c.path) {
+            existingByPath.set(c.path, c);
+          }
+        });
+
+        // 6. Reconciliation: Remove stale entries that are no longer on disk
+        // ONLY if the series downloadPath matches the scanned series path
+        if (downloadedSeries.downloadPath === series.path) {
+          downloadedSeries.chapters = downloadedSeries.chapters.filter(existingChapter => {
+            if (typeof existingChapter === 'string') return true; // Keep legacy string entries
+            const path = existingChapter.path;
+            if (!path) return true;
+
+            // If the chapter folder is under the scanned series path, but wasn't found during scan, it's gone.
+            if (path.startsWith(series.path) && !scannedPaths.has(path)) {
+              return false;
+            }
+            return true;
+          });
+        }
+
+        // 7. Add new chapters or update existing ones
+        for (const scannedChapter of scannedChapters) {
+          // Check if already exists by path
+          if (existingByPath.has(scannedChapter.path)) {
+            continue;
+          }
+
+          // Check if already exists by ID
+          const existsById = downloadedSeries.chapters.some(existingChapter =>
             (typeof existingChapter === 'string' ? existingChapter : existingChapter.id) === scannedChapter.id
           );
 
-          if (!exists) {
+          if (!existsById) {
             downloadedSeries.chapters.push({
               id: scannedChapter.id,
               path: scannedChapter.path || ''

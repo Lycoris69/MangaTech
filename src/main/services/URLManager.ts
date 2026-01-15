@@ -109,7 +109,7 @@ export class URLManager {
    * @returns Homepage URL
    */
   buildHomepageUrl(page: number = 1): string {
-    return page > 1 ? `${this.baseUrl}/page/${page}` : this.baseUrl
+    return page > 1 ? `${this.baseUrl}/?page=${page}` : this.baseUrl
   }
 
   /**

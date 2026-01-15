@@ -292,7 +292,7 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
           if (seriesId) {
             if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
             saveTimeoutRef.current = setTimeout(() => {
-              libraryService.markAsRead(seriesId, cId, pNum)
+              libraryService.markAsRead(seriesId, cId, 1)
             }, 1000)
           }
         }
@@ -499,12 +499,11 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
                   {!isLoaded && !isLocal && (
                     <div className="page-loading-fallback">
                       <div className="spinner"></div>
-                      <p>Page {page.pageNumber}</p>
                     </div>
                   )}
                   <img
                     src={page.imageUrl}
-                    alt={`${chapter.title} - Page ${page.pageNumber}`}
+                    alt={`${chapter.title}`}
                     className={`page-image ${zoomLevel !== 1 ? 'zoomed' : ''} ${isLoaded ? 'loaded' : ''}`}
                     referrerPolicy="no-referrer"
                     loading={shouldBeEager ? "eager" : "lazy"}

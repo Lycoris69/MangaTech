@@ -4,13 +4,14 @@ import { SeriesSearchResult } from '../types';
 import { SkeletonCard } from '../components/LoadingSpinner';
 import { useNotifications } from '../components/NotificationSystem';
 import { SeriesCard } from '../components/SeriesCard';
+import { homeState } from '../services/HomeState';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
-  const [releases, setReleases] = useState<SeriesSearchResult[]>([]);
-  const [page, setPage] = useState(1);
+  const [releases, setReleases] = useState<SeriesSearchResult[]>(homeState.releases);
+  const [page, setPage] = useState(homeState.page);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(homeState.hasMore);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -46,9 +47,9 @@ const HomePage: React.FC = () => {
       if (!newReleases || newReleases.length === 0) {
         setHasMore(false);
       } else {
-        setReleases(prev => {
-          const existingIds = new Set(prev.map(r => r.id));
-          const uniqueNew = newReleases.filter(r => !existingIds.has(r.id));
+        setReleases((prev: SeriesSearchResult[]) => {
+          const existingIds = new Set(prev.map((r: SeriesSearchResult) => r.id));
+          const uniqueNew = newReleases.filter((r: SeriesSearchResult) => !existingIds.has(r.id));
           return [...prev, ...uniqueNew];
         });
       }
@@ -62,8 +63,38 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
+    // If we have data already (from homeState), don't fetch page 1 again
+    if (page === 1 && releases.length > 0) return;
     fetchReleases(page);
   }, [page]);
+
+  // Update homeState when local state changes
+  useEffect(() => {
+    homeState.releases = releases;
+    homeState.page = page;
+    homeState.hasMore = hasMore;
+  }, [releases, page, hasMore]);
+
+  // Save scroll position on unmount or scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      homeState.scrollPosition = window.scrollY;
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Restore scroll position on mount if we have one
+  useEffect(() => {
+    if (homeState.scrollPosition > 0) {
+      // Small timeout to ensure rendering is complete
+      setTimeout(() => {
+        window.scrollTo(0, homeState.scrollPosition);
+      }, 0);
+    }
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
