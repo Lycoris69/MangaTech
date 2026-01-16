@@ -114,7 +114,7 @@ class MangaTechApp {
         console.error('Failed to load URL:', err);
       });
     } else {
-      this.mainWindow?.loadFile(path.join(__dirname, '../renderer/index.html')).catch(err => {
+      this.mainWindow?.loadFile(path.join(__dirname, 'renderer/index.html')).catch(err => {
         console.error('Failed to load file:', err);
       });
     }

@@ -102,7 +102,7 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
     })
   }, [imageCache, loadingPages])
 
-  const fetchAndAppendChapter = async (targetChapterId: string, shouldScroll = false, metadataList?: ChapterMetadata[]) => {
+  const fetchAndAppendChapter = async (targetChapterId: string, customScrollPage?: number, metadataList?: ChapterMetadata[]) => {
     console.log(`[OnlineReader] fetchAndAppendChapter requested for: ${targetChapterId}`);
     try {
       const pageUrls = await window.electronAPI.scraper.getChapterPages(targetChapterId, seriesId)
@@ -136,8 +136,8 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
         }
       }
 
-      if (shouldScroll) {
-        setTimeout(() => scrollToPage(targetChapterId, initialPage), 500)
+      if (customScrollPage !== undefined) {
+        setTimeout(() => scrollToPage(targetChapterId, customScrollPage), 500)
       }
     } catch (err) {
       console.error('Failed to fetch chapter:', err)
@@ -243,26 +243,36 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
           }
 
           setSeriesName(seriesDetails.title || '')
-          const parseChapterNum = (val: string) => {
-            if (!val) return 0
-            // Handle regional comma as decimal (e.g. 74,5 -> 74.5)
-            const normalized = val.replace(',', '.')
-            const num = parseFloat(normalized.replace(/[^0-9.]/g, ''))
-            return isNaN(num) ? 0 : num
+          const parseChapterNum = (val: string | number, title?: string) => {
+            if (typeof val === 'number') return val
+
+            const extract = (s: string) => {
+              if (!s) return null
+              // Handle regional comma as decimal (e.g. 74,5 -> 74.5)
+              const normalized = s.replace(',', '.')
+              const match = normalized.match(/(?:ch|chapter|vol|volume)?\s*(\d+(\.\d+)?)/i)
+              return match ? parseFloat(match[1]) : null
+            }
+
+            let num = extract(val)
+            if (num === null && title) {
+              num = extract(title)
+            }
+            return num === null ? 0 : num
           }
 
           const meta: ChapterMetadata[] = (seriesDetails.chapters || []).map((c: any) => ({
             id: c.chapterUrl || c.id,
             title: c.title || `Chapter ${c.chapterNumber}`,
             chapterUrl: c.chapterUrl,
-            chapterNumber: parseChapterNum(c.chapterNumber)
+            chapterNumber: parseChapterNum(c.chapterNumber, c.title)
           })).sort((a: ChapterMetadata, b: ChapterMetadata) => a.chapterNumber - b.chapterNumber)
 
           setAllChapters(meta)
           // Pass the meta list directly so the first chapter gets its title immediately
-          await fetchAndAppendChapter(chapterId, initialPage > 1, meta)
+          await fetchAndAppendChapter(chapterId, initialPage > 1 ? initialPage : undefined, meta)
         } else {
-          await fetchAndAppendChapter(chapterId, initialPage > 1)
+          await fetchAndAppendChapter(chapterId, initialPage > 1 ? initialPage : undefined)
         }
       } catch (err: any) {
         console.error('Initialization error:', err)
@@ -432,13 +442,23 @@ const OnlineReader: React.FC<OnlineReaderProps> = ({
             <select
               className="chapter-selector"
               value={activeChapterId}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const targetId = e.target.value
-                const found = loadedChapters.find(c => c.chapterId === targetId)
-                if (found) {
-                  scrollToPage(targetId, 1)
-                } else {
-                  fetchAndAppendChapter(targetId, true)
+
+                // Clear state for "clean jump" to prevent history conflicts
+                setIsLoading(true)
+                setLoadedChapters([])
+                setActiveChapterId(targetId)
+                setCurrentPage(1)
+
+                try {
+                  // Pass true to shouldScroll for initial load behavior, but since we are re-initializing
+                  // we rely on the clean state.
+                  await fetchAndAppendChapter(targetId, undefined, allChapters)
+                } catch (err) {
+                  console.error("Failed to switch chapter", err)
+                } finally {
+                  setIsLoading(false)
                 }
               }}
               onClick={(e) => e.stopPropagation()}

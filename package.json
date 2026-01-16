@@ -79,6 +79,10 @@
       "dist/**/*",
       "node_modules/**/*"
     ],
+    "asarUnpack": [
+      "**/node_modules/sharp/**/*",
+      "**/node_modules/@img/**/*"
+    ],
     "mac": {
       "category": "public.app-category.entertainment"
     },
