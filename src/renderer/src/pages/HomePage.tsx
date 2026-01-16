@@ -15,6 +15,8 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [showTopBtn, setShowTopBtn] = useState(false);
+
   const navigate = useNavigate();
   const { error: showError } = useNotifications();
   const observer = useRef<IntersectionObserver | null>(null);
@@ -75,10 +77,11 @@ const HomePage: React.FC = () => {
     homeState.hasMore = hasMore;
   }, [releases, page, hasMore]);
 
-  // Save scroll position on unmount or scroll
+  // Save scroll position on unmount or scroll, and handle top button visibility
   useEffect(() => {
     const handleScroll = () => {
       homeState.scrollPosition = window.scrollY;
+      setShowTopBtn(window.scrollY > 400);
     };
     window.addEventListener('scroll', handleScroll);
     return () => {
@@ -105,6 +108,13 @@ const HomePage: React.FC = () => {
 
   const handleSeriesClick = (series: SeriesSearchResult) => {
     navigate(`/series/${encodeURIComponent(series.id)}`);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   return (
@@ -193,6 +203,16 @@ const HomePage: React.FC = () => {
           </div>
         )}
       </section>
+
+      {showTopBtn && (
+        <button
+          className="return-to-top-btn"
+          onClick={scrollToTop}
+          aria-label="Return to top"
+        >
+          ↑
+        </button>
+      )}
     </div>
   );
 };
