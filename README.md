@@ -6,11 +6,13 @@ A desktop application for searching, downloading, and reading manga, manhua, and
 
 - 🔍 Search and discover manga from multiple sources
 - 📥 Download manga for offline reading (Batch downloads supported)
-- 📖 Full-screen reading mode with zoom functionality
+- 📖 Full-screen reading mode with zoom functionality and chapter selector
 - 📚 Personal library management with favorites
 - 📊 Real-time Download Manager with progress tracking
 - 🔄 Dual interface modes (Navigation and Reading)
 - 🎯 Trending content discovery
+- ⬆️ Return-to-top button for easy navigation during infinite scroll
+- 🚀 Executable releases for Linux, Windows, and Mac
 
 ## Development
 
@@ -40,7 +42,29 @@ This will start both the Electron main process and the React renderer in develop
 - `npm run test` - Run tests
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
-- `npm run dist` - Build and package for distribution
+- `npm run pack` - Package without building (requires prior build)
+- `npm run dist` - Build and create distributable executables
+
+### Building for Release
+
+To create distributable executables:
+
+```bash
+npm run dist
+```
+
+This will build the application and package it using electron-builder. The output will be in the `release/` directory:
+
+- **Linux**: AppImage executable
+- **Windows**: NSIS installer
+- **Mac**: DMG installer
+
+#### Build Configuration
+
+The build is configured in `package.json` under the `build` key:
+- **App ID**: `com.mangatech.app`
+- **Product Name**: MangaTech
+- **Special handling**: Sharp and @img packages are unpacked from asar for proper functionality
 
 ### Project Structure
 

@@ -126,3 +126,111 @@ setTimeout(() => {
 - **Enhanced**: Navigation speed with preloading
 
 The performance optimization successfully resolved the infinite loading issue and created a responsive, user-friendly experience with proper error handling and fallback mechanisms.
+
+---
+
+## Recent Optimizations (January 2026)
+
+### Chapter Selector Synchronization Fix
+
+#### Problem
+Users experienced desynchronization between the selected chapter in the dropdown and the actually displayed chapter during reading mode. The chapter selector would show one chapter while the reader displayed a different chapter, causing confusion and navigation issues.
+
+#### Root Cause
+- **ID Matching Failures**: Different chapter ID formats (e.g., full URLs vs. basenames) prevented proper matching in the chapter list
+- **State Inconsistency**: activeChapterId state didn't always sync correctly with the displayed chapter during infinite scroll
+
+#### Solution Implemented
+- **Robust ID Normalization**: Added normalization logic that strips special characters and compares basenames when exact ID matches fail
+- **Improved Chapter Finding**: Implemented lenient matching that tries exact matches first, then falls back to normalized basename comparison
+- **Clean State Transitions**: Chapter selector changes now clear loaded chapters and reinitialize state to prevent history conflicts
+
+#### Technical Details
+```typescript
+const normalize = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const getBase = (id: string) => {
+  const parts = id.split('/');
+  return parts[parts.length - 1] || id;
+};
+
+// Try exact match first, then normalized basename match
+let currentIndex = allChapters.findIndex(c => c.id === lastLoadedId);
+if (currentIndex === -1) {
+  currentIndex = allChapters.findIndex(c => 
+    normalize(getBase(c.id)) === normalize(getBase(lastLoadedId))
+  );
+}
+```
+
+#### Results
+- ✅ Chapter selector now accurately reflects displayed chapter
+- ✅ Chapter navigation works reliably across different ID formats
+- ✅ No more confusion about current reading position
+
+---
+
+### Home Page Scroll Optimization
+
+#### Enhancement
+Added a "Return to Top" button that appears during infinite scroll on the home page, improving navigation for users browsing through many releases.
+
+#### Implementation
+- **Smart Visibility**: Button appears only when user has scrolled more than 400px down the page
+- **Smooth Animation**: Uses CSS transitions for fade-in/fade-out effects
+- **Smooth Scrolling**: Implements smooth scroll behavior for better UX
+- **Performance**: Uses single scroll event listener with efficient state updates
+
+#### Technical Details
+```typescript
+const handleScroll = () => {
+  homeState.scrollPosition = window.scrollY;
+  setShowTopBtn(window.scrollY > 400);
+};
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
+```
+
+#### User Impact
+- **Enhanced Navigation**: Users can quickly return to top without manual scrolling
+- **Better UX**: Floating button provides clear visual affordance
+- **Scroll Position Persistence**: Combined with existing scroll restoration for seamless page transitions
+
+---
+
+### Build & Distribution Configuration
+
+#### Enhancement
+Configured electron-builder for creating distributable executables across multiple platforms.
+
+#### Implementation
+- **Multi-Platform Support**: 
+  - Linux: AppImage
+  - Windows: NSIS installer
+  - Mac: DMG installer
+- **Asset Handling**: Configured asar unpacking for Sharp and @img packages to ensure proper image processing
+- **Build Optimization**: Separated build and pack commands for flexible workflow
+
+#### Build Configuration
+```json
+{
+  "appId": "com.mangatech.app",
+  "productName": "MangaTech",
+  "directories": {
+    "output": "release"
+  },
+  "asarUnpack": [
+    "**/node_modules/sharp/**/*",
+    "**/node_modules/@img/**/*"
+  ]
+}
+```
+
+#### Results
+- ✅ Single command (`npm run dist`) creates platform-specific distributables
+- ✅ Proper handling of native modules (Sharp for image processing)
+- ✅ Professional installer packages for end users

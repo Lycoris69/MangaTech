@@ -1,7 +1,7 @@
 # 📱 MangaTech - Concept du Projet
 
 > **Document original** - Décembre 2024  
-> **Dernière mise à jour** - Novembre 2025
+> **Dernière mise à jour** - Janvier 2026
 
 ---
 
@@ -150,7 +150,7 @@ Cette application est développée dans un **cadre strictement personnel**, sans
 #### Lecture Automatique (Cœur du MVP)
 - ⏳ Défilement automatique des pages d'un chapitre
 - ⏳ Contrôles basiques : Play/Pause, vitesse de défilement
-- ⏳ Mode plein-écran automatique lors de la lecture
+- ✅ Mode plein-écran automatique lors de la lecture
 
 #### Gestion Minimale des Mangas
 - ✅ Ajout manuel d'un manga (URL + titre)
@@ -257,4 +257,4 @@ Pour plus d'informations sur l'implémentation actuelle, consultez :
 
 **Version du concept** : 1.0  
 **Date de création** : Décembre 2024  
-**Dernière révision** : Novembre 2025
+**Dernière révision** : Janvier 2026

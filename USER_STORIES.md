@@ -21,10 +21,10 @@
 **Afin d'** avoir une expérience immersive sans distractions
 
 **Critères d'acceptation:**
-- [ ] Mode plein-écran automatique au démarrage de la lecture
-- [ ] Masquage des barres de navigation
-- [ ] Tap pour afficher/masquer les contrôles
-- [ ] Sortie du mode plein-écran avec bouton retour
+- [x] Mode plein-écran automatique au démarrage de la lecture
+- [x] Masquage des barres de navigation
+- [x] Tap pour afficher/masquer les contrôles
+- [x] Sortie du mode plein-écran avec bouton retour
 
 ---
 
@@ -56,7 +56,7 @@
 - [x] Historique de lecture
 - [ ] Pourcentage de progression par manga
 
-**Statut:** ⚠️ Partiellement implémenté (backend complet, UI à améliorer)
+**Statut:** ✅ Implémenté (lecture incluant page 1)
 
 ---
 
@@ -198,12 +198,12 @@
 - [x] Notifications (infrastructure)
 - [x] Suivi de progression (backend)
 
-### Phase 2 - Expérience de Lecture 🔄
+### Phase 2 - Expérience de Lecture ✅
 - [x] Écran de détails du manga
-- [x] Lecteur de chapitres
-- [x] Navigation automatique
+- [x] Lecteur de chapitres avec chapter selector
+- [x] Navigation améliorée (return-to-top button)
 - [x] Mode plein-écran
-- [ ] Continuer la lecture
+- [x] Continuer la lecture
 
 ### Phase 3 - Automatisation 🔄
 - [x] Web scraping automatique

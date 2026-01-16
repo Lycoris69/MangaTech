@@ -1,6 +1,6 @@
 # Project Summary & Context
 
-**Last Updated:** January 15, 2026
+**Last Updated:** January 16, 2026
 
 ## 📖 Overview
 **MangaTech** is a desktop application designed for searching, downloading, and reading manga, manhua, and webtoon content. It provides an automated and enhanced reading experience with web scraping capabilities, series management, and a cyberpunk-themed interface.
@@ -31,6 +31,8 @@ The application follows a modern Electron architecture with clear separation of 
 5. **Download Manager**: Batch downloading, progress tracking, and queue management
 6. **Reading Experience**: Enhanced online reader with chapter selector and optimized image loading
 7. **Library Management**: Reset scan functionality and improved favorite tracking
+8. **Executable Release**: Configured electron-builder for Linux AppImage, Windows NSIS, and Mac DMG distributions
+9. **Navigation Enhancements**: Return-to-top button for infinite scroll on home page
 
 ### 🔄 In Progress (Phase 2)
 1. **Visual Refinements**: Consistent page titles and scrolling behavior
@@ -68,6 +70,12 @@ The application follows a modern Electron architecture with clear separation of 
 -   **Data Models**: Comprehensive TypeScript interfaces for Series, Chapter, and UserLibrary
 -   **Caching System**: Intelligent metadata caching with configurable expiration
 -   **Error Recovery**: Fallback data and graceful degradation for failed requests
+
+### Reading Mode & Navigation Improvements (January 2026) ✅
+*Enhanced user experience with better navigation controls.*
+-   **Chapter Selector Fix**: Resolved desynchronization issues where selected chapter didn't match displayed chapter in reading mode. Implemented robust ID matching with normalization logic.
+-   **Return-to-Top Button**: Added floating button on home page that appears during infinite scroll, allowing users to quickly navigate back to the top with smooth scrolling.
+-   **Executable Release**: Configured electron-builder for multi-platform distribution (Linux AppImage, Windows NSIS, Mac DMG) with proper Sharp library handling.
 
 ## 📊 Current Data & Metrics
 ### Active Series Tracking
