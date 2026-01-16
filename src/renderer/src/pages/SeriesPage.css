@@ -55,7 +55,6 @@
   font-size: 14px;
   font-weight: 600;
   font-family: 'Orbitron', monospace;
-  margin-bottom: 25px;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -87,6 +86,13 @@
 .series-header-section {
   display: flex;
   flex-direction: column;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: center;
 }
 
 .series-hero {
@@ -236,9 +242,6 @@
   overflow: hidden;
 }
 
-.action-buttons {
-  margin-top: auto;
-}
 
 .favorite-btn {
   padding: 12px 30px;

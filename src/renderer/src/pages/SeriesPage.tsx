@@ -343,7 +343,15 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
   return (
     <div className="series-page">
       <div className="series-header-section">
-        <button onClick={() => navigate(-1)} className="back-button">← Back</button>
+        <div className="header-buttons">
+          <button onClick={() => navigate(-1)} className="back-button">← Back</button>
+          <button
+            className={`favorite-btn ${isFavorite ? 'active' : ''}`}
+            onClick={handleToggleFavorite}
+          >
+            {isFavorite ? 'Remove from Library' : 'Add to Library'}
+          </button>
+        </div>
 
         <div className="series-hero">
           <div className="series-poster-container">
@@ -383,15 +391,6 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
                 <span style={{ fontSize: '0.8rem', color: 'var(--cyber-purple-bright)', opacity: 0.7 }}>[EXPAND]</span>
               </div>
               <p>{series.synopsis || 'No synopsis available.'}</p>
-            </div>
-
-            <div className="action-buttons">
-              <button
-                className={`favorite-btn ${isFavorite ? 'active' : ''}`}
-                onClick={handleToggleFavorite}
-              >
-                {isFavorite ? 'Remove from Library' : 'Add to Library'}
-              </button>
             </div>
           </div>
         </div>
