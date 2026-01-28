@@ -25,9 +25,11 @@ const DEFAULT_SOURCES: SourceConfig[] = [
 export class ScraperManager {
   private scrapers: Map<string, WebScrapingService> = new Map()
   private sources: SourceConfig[]
+  private logDirectory: string
 
-  constructor(sources: SourceConfig[] = DEFAULT_SOURCES) {
+  constructor(sources: SourceConfig[] = DEFAULT_SOURCES, logDirectory: string = 'logs') {
     this.sources = sources.sort((a, b) => a.priority - b.priority)
+    this.logDirectory = logDirectory
     this.initializeScrapers()
   }
 
@@ -41,7 +43,7 @@ export class ScraperManager {
 
           // Use specialized scraper for ManhwaZ
           if (source.name === 'ManhwaZ') {
-            scraper = new ManhwazScraper()
+            scraper = new ManhwazScraper(this.logDirectory)
           } else {
             throw new Error(`Unsupported source: ${source.name}`)
           }

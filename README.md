@@ -25,17 +25,38 @@ A desktop application for searching, downloading, and reading manga, manhua, and
 
 1. Install dependencies:
 ```bash
-npm install
+make install
 ```
 
 2. Start development server:
 ```bash
-npm run dev
+make dev
 ```
 
 This will start both the Electron main process and the React renderer in development mode.
 
-### Available Scripts
+### Make Commands
+
+| Command | Description |
+|---------|-------------|
+| `make install` | Install dependencies |
+| `make dev` | Start development server |
+| `make build` | Build the application |
+| `make test` | Run tests |
+| `make test-watch` | Run tests in watch mode |
+| `make lint` | Run ESLint |
+| `make lint-fix` | Run ESLint with auto-fix |
+| `make format` | Format code with Prettier |
+| `make clean` | Clean build artifacts |
+| `make dist` | Build and create release (host platform) |
+| `make dist-win` | Build and create release for Windows |
+| `make dist-linux` | Build and create release for Linux |
+| `make dist-all` | Build and create release for both Win/Linux |
+| `make pack` | Create electron package |
+
+Run `make help` to see all available commands.
+
+### Available npm Scripts
 
 - `npm run dev` - Start development environment
 - `npm run build` - Build for production
@@ -50,7 +71,10 @@ This will start both the Electron main process and the React renderer in develop
 To create distributable executables:
 
 ```bash
-npm run dist
+make dist          # Build for current platform
+make dist-win      # Build for Windows
+make dist-linux    # Build for Linux
+make dist-all      # Build for both Windows and Linux
 ```
 
 This will build the application and package it using electron-builder. The output will be in the `release/` directory:

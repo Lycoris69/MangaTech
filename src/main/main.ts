@@ -19,14 +19,24 @@ class MangaTechApp {
   private scraperManager: ScraperManager;
   private downloadManager: DownloadManager;
   private readonly dataDir: string;
+  private readonly logDir: string;
 
   constructor() {
-    this.scraperManager = new ScraperManager();
-    // Use user data directory or local data directory for development
-    this.dataDir = path.join(process.cwd(), 'data');
+    // Use user data directory for production or local data directory for development
+    this.dataDir = process.env.NODE_ENV === 'development'
+      ? path.join(process.cwd(), 'data')
+      : path.join(app.getPath('userData'), 'data');
+
+    this.logDir = process.env.NODE_ENV === 'development'
+      ? path.join(process.cwd(), 'logs')
+      : app.getPath('logs');
+
+    this.scraperManager = new ScraperManager(undefined, this.logDir);
+
     this.downloadManager = new DownloadManager(
       this.scraperManager,
-      path.join(this.dataDir, 'download-tasks.json')
+      path.join(this.dataDir, 'download-tasks.json'),
+      this.logDir
     );
 
     this.initializeApp();

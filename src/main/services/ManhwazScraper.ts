@@ -1,3 +1,4 @@
+import path from 'path'
 import { BaseScraper, ScrapingError, ValidationError, RateLimitConfig as BaseRateLimitConfig } from './WebScrapingService'
 import { Series, SeriesSearchResult, TrendingContent, PageUrl, PageData, Chapter, LatestRelease, SeriesDetails, HotScan } from '../types'
 import { Page } from 'puppeteer'
@@ -51,7 +52,7 @@ export class ManhwazScraper extends BaseScraper {
   private cacheService: ContentCacheService
   private performanceOptimizer: PerformanceOptimizer
 
-  constructor() {
+  constructor(logDirectory: string = 'logs') {
     // Configure rate limiting for manhwaz.com (Requirements 5.1, 5.4)
     const rateLimitConfig: ManhwazRateLimitConfig = {
       requestsPerSecond: 1, // Conservative rate to respect server resources
@@ -135,7 +136,7 @@ export class ManhwazScraper extends BaseScraper {
             format: winston.format.simple()
           }),
           new winston.transports.File({
-            filename: 'logs/combined.log'
+            filename: path.join(logDirectory, 'combined.log')
           })
         ]
       })

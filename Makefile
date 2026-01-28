@@ -1,6 +1,6 @@
 # MangaTech - Makefile for development workflow
 
-.PHONY: help install dev build test lint format clean dist pack
+.PHONY: help install dev build test lint format clean dist dist-win dist-linux dist-all pack
 
 # Default target
 help:
@@ -16,7 +16,10 @@ help:
 	@echo "  make format      - Format code with prettier"
 	@echo "  make format-check- Check code formatting"
 	@echo "  make clean       - Clean build artifacts"
-	@echo "  make dist        - Build and create distribution package"
+	@echo "  make dist        - Build and create distribution package (host platform)"
+	@echo "  make dist-win    - Build and create distribution package for Windows"
+	@echo "  make dist-linux  - Build and create distribution package for Linux"
+	@echo "  make dist-all    - Build and create distribution package for both Win/Linux"
 	@echo "  make pack        - Create electron package"
 	@echo ""
 
@@ -58,13 +61,23 @@ format-check:
 
 # Clean build artifacts
 clean:
-	rm -rf dist/
-	rm -rf release/
-	rm -rf node_modules/.cache/
+	npm run clean
 
-# Create distribution package
+# Create distribution package (host platform)
 dist:
 	npm run dist
+
+# Create distribution package for Windows
+dist-win:
+	npm run dist:win
+
+# Create distribution package for Linux
+dist-linux:
+	npm run dist:linux
+
+# Create distribution package for both platforms
+dist-all:
+	npm run dist:all
 
 # Create electron package
 pack:

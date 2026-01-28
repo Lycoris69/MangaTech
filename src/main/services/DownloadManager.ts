@@ -19,9 +19,13 @@ export class DownloadManager {
     private pausedTasks: Set<string> = new Set()
     private cancelledTasks: Set<string> = new Set()
 
-    constructor(scraperManager: ScraperManager, tasksFile: string) {
+    constructor(scraperManager: ScraperManager, tasksFile: string, logDirectory: string = 'logs') {
         this.scraperManager = scraperManager
         this.tasksFile = tasksFile
+
+        if (!fs.existsSync(logDirectory)) {
+            fs.mkdirSync(logDirectory, { recursive: true })
+        }
 
         if (!DownloadManager.logger) {
             DownloadManager.logger = winston.createLogger({
@@ -40,7 +44,7 @@ export class DownloadManager {
                         )
                     }),
                     new winston.transports.File({
-                        filename: 'logs/combined.log'
+                        filename: path.join(logDirectory, 'combined.log')
                     })
                 ]
             })
