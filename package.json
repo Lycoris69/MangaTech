@@ -97,10 +97,16 @@
       "category": "public.app-category.entertainment"
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        "nsis",
+        "zip"
+      ]
     },
     "linux": {
-      "target": "AppImage"
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ]
     },
     "publish": {
       "provider": "github",
