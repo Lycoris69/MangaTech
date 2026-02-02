@@ -1,6 +1,6 @@
 {
   "name": "mangatech",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A desktop application for searching, downloading, and reading manga content",
   "main": "dist/main.js",
   "homepage": "./",
@@ -24,7 +24,7 @@
     "electron": "electron dist/main.js",
     "pack": "electron-builder",
     "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win",
+    "dist:win": "npm install --include=optional sharp && npm run build && electron-builder --win",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:all": "npm run build && electron-builder --win --linux",
     "clean": "rimraf dist release logs node_modules/.cache"
@@ -77,6 +77,10 @@
     "react-router-dom": "^6.16.0",
     "sharp": "^0.34.5",
     "winston": "^3.19.0"
+  },
+  "optionalDependencies": {
+    "@img/sharp-linux-x64": "^0.34.5",
+    "@img/sharp-win32-x64": "^0.34.5"
   },
   "build": {
     "appId": "com.mangatech.app",
