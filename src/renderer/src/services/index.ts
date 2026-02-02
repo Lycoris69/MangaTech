@@ -1,6 +1,6 @@
 // Export all services for easy importing
 export { StorageService } from './StorageService'
-export { FileSystemService } from './FileSystemService'
+// export { FileSystemService } from './FileSystemService'
 export {
   BaseScraper,
   ScrapingError,
@@ -8,8 +8,21 @@ export {
   ValidationError
 } from './WebScrapingService'
 export type { WebScrapingService } from './WebScrapingService'
-export { ManhwazScraper } from './ManhwazScraper'
-export { ChapterExtractor } from './ChapterExtractor'
+import {
+  Series,
+  Chapter,
+  SeriesSearchResult,
+  UserLibrary,
+  DownloadTask,
+  SeriesDetails,
+  TrendingContent,
+  PageUrl,
+  HotScan,
+  LatestRelease
+} from '../types'
+import { SearchResponse } from './scraper/SearchInterface'
+export { ManhwazScraper } from './scraper/ManhwazScraper'
+export { ChapterExtractor } from './scraper/ChapterExtractor'
 export { ScraperManager } from './ScraperManager'
 export {
   SearchService,
@@ -22,7 +35,7 @@ export {
   type SearchOptions,
   type AutocompleteResult,
   type SearchResponse
-} from './SearchInterface'
+} from './scraper/SearchInterface'
 export { LibraryService } from './LibraryService'
 
 export {
@@ -31,6 +44,7 @@ export {
   type DownloadOptions,
   type DownloadManagerEvents
 } from './DownloadManager'
+/*
 export {
   ContentIntegrityService,
   type DuplicateDetectionResult,
@@ -40,6 +54,7 @@ export {
   type ResolutionResult,
   type ContentIntegrityEvents
 } from './ContentIntegrityService'
+*/
 export { OnlineReadingService } from './OnlineReadingService'
 export { ReadingStateService } from './ReadingStateService'
 export { ModeManager, modeManager } from './ModeManager'
@@ -64,14 +79,14 @@ export type { PerformanceConfig } from './PerformanceOptimizer'
 // Service interfaces for dependency injection and testing
 export interface IStorageService {
   initialize(): Promise<void>
-  saveUserLibrary(library: any): Promise<void>
-  loadUserLibrary(): Promise<any>
-  saveSeriesMetadata(series: any[]): Promise<void>
-  loadSeriesMetadata(): Promise<any[]>
-  saveDownloadTasks(tasks: any[]): Promise<void>
-  loadDownloadTasks(): Promise<any[]>
-  upsertSeries(series: any): Promise<void>
-  getSeriesById(seriesId: string): Promise<any | null>
+  saveUserLibrary(library: UserLibrary): Promise<void>
+  loadUserLibrary(): Promise<UserLibrary>
+  saveSeriesMetadata(series: Series[] | SeriesSearchResult[]): Promise<void>
+  loadSeriesMetadata(): Promise<(Series | SeriesSearchResult)[]>
+  saveDownloadTasks(tasks: DownloadTask[]): Promise<void>
+  loadDownloadTasks(): Promise<DownloadTask[]>
+  upsertSeries(series: Series | SeriesSearchResult): Promise<void>
+  getSeriesById(seriesId: string): Promise<Series | SeriesSearchResult | null>
   deleteSeries(seriesId: string): Promise<void>
   verifyFileIntegrity(filePath: string): Promise<boolean>
   getUserDataPath(): string
@@ -79,76 +94,76 @@ export interface IStorageService {
 
 export interface IFileSystemService {
   initialize(): Promise<void>
-  createSeriesDirectory(series: any): Promise<string>
-  createChapterDirectory(series: any, chapter: any): Promise<string>
-  getSeriesPath(series: any): Promise<string>
-  getChapterPath(series: any, chapter: any): Promise<string>
+  createSeriesDirectory(series: Series | SeriesSearchResult): Promise<string>
+  createChapterDirectory(series: Series | SeriesSearchResult, chapter: Chapter): Promise<string>
+  getSeriesPath(series: Series | SeriesSearchResult): Promise<string>
+  getChapterPath(series: Series | SeriesSearchResult, chapter: Chapter): Promise<string>
   getPageFilePath(chapterPath: string, pageNumber: number, extension?: string): string
-  deleteSeriesDirectory(series: any): Promise<void>
-  deleteChapterDirectory(series: any, chapter: any): Promise<void>
+  deleteSeriesDirectory(series: Series | SeriesSearchResult): Promise<void>
+  deleteChapterDirectory(series: Series | SeriesSearchResult, chapter: Chapter): Promise<void>
   getDownloadedSeries(): Promise<string[]>
-  getDownloadedChapters(series: any): Promise<string[]>
-  isChapterDownloaded(series: any, chapter: any): Promise<boolean>
-  getSeriesSize(series: any): Promise<number>
+  getDownloadedChapters(series: Series | SeriesSearchResult): Promise<string[]>
+  isChapterDownloaded(series: Series | SeriesSearchResult, chapter: Chapter): Promise<boolean>
+  getSeriesSize(series: Series | SeriesSearchResult): Promise<number>
   getTotalDownloadSize(): Promise<number>
   detectDuplicateFiles(): Promise<Map<string, string[]>>
-  verifyFileIntegrity(filePath: string): Promise<any>
-  verifyChapterIntegrity(series: any, chapter: any): Promise<any>
-  verifySeriesIntegrity(series: any): Promise<any>
+  verifyFileIntegrity(filePath: string): Promise<unknown>
+  verifyChapterIntegrity(series: Series | SeriesSearchResult, chapter: Chapter): Promise<unknown>
+  verifySeriesIntegrity(series: Series | SeriesSearchResult): Promise<unknown>
   calculateFileHash(filePath: string): Promise<string>
-  removeDuplicateFiles(duplicates: Map<string, string[]>): Promise<any>
-  removeCorruptedFiles(corruptedFiles: string[]): Promise<any>
+  removeDuplicateFiles(duplicates: Map<string, string[]>): Promise<unknown>
+  removeCorruptedFiles(corruptedFiles: string[]): Promise<unknown>
   getDownloadsPath(): string
 }
 
 export interface IWebScrapingService {
-  searchSeries(query: string): Promise<any[]>
-  getSeriesDetails(seriesId: string): Promise<any>
-  getTrendingContent(): Promise<any>
-  getChapterPages(chapterId: string): Promise<any[]>
+  searchSeries(query: string): Promise<SeriesSearchResult[]>
+  getSeriesDetails(seriesId: string): Promise<SeriesDetails>
+  getTrendingContent(): Promise<TrendingContent>
+  getChapterPages(chapterId: string): Promise<PageUrl[]>
   validateSource(sourceUrl: string): Promise<boolean>
 }
 
 export interface IScraperManager {
   getAvailableSources(): string[]
-  searchSeries(query: string): Promise<any[]>
-  getSeriesDetails(seriesId: string): Promise<any>
-  getTrendingContent(): Promise<any>
-  getChapterPages(chapterId: string): Promise<any[]>
+  searchSeries(query: string): Promise<SeriesSearchResult[]>
+  getSeriesDetails(seriesId: string): Promise<SeriesDetails>
+  getTrendingContent(): Promise<TrendingContent>
+  getChapterPages(chapterId: string): Promise<PageUrl[]>
   validateSource(sourceUrl: string): Promise<boolean>
-  addSource(config: any): void
+  addSource(config: unknown): void
   removeSource(sourceName: string): void
   cleanup(): Promise<void>
 }
 
 export interface ISearchService {
-  searchSeries(query: string): Promise<any>
-  getTrendingContent(): Promise<any>
+  searchSeries(query: string): Promise<SearchResponse>
+  getTrendingContent(): Promise<TrendingContent | { hotScans: HotScan[], latestReleases: LatestRelease[] }>
   clearCache(): void
   getCacheStats(): { size: number; maxSize: number; hitRate?: number }
 }
 
 export interface IDownloadManager {
   initialize(): Promise<void>
-  downloadCompleteSeries(series: any, options?: any): Promise<string>
-  downloadSelectedChapters(series: any, chapterIds: string[], options?: any): Promise<string>
+  downloadCompleteSeries(series: Series | SeriesSearchResult, options?: unknown): Promise<string>
+  downloadSelectedChapters(series: Series | SeriesSearchResult, chapterIds: string[], options?: unknown): Promise<string>
   pauseDownload(taskId: string): Promise<void>
   cancelDownload(taskId: string): Promise<void>
   retryDownload(taskId: string): Promise<void>
-  getDownloadTasks(): any[]
-  getDownloadTask(taskId: string): any | undefined
+  getDownloadTasks(): DownloadTask[]
+  getDownloadTask(taskId: string): DownloadTask | undefined
   getQueueLength(): number
   getActiveDownloadsCount(): number
-  setDownloadOptions(options: any): void
+  setDownloadOptions(options: unknown): void
   setMaxConcurrentDownloads(max: number): void
   cleanup(): Promise<void>
 }
 
 export interface IContentIntegrityService {
-  detectDuplicates(): Promise<any>
-  verifyAllContentIntegrity(): Promise<any>
-  verifySeriesIntegrity(series: any): Promise<any>
-  resolveContentIssues(duplicates: any, integrity: any, options: any): Promise<any>
-  generateContentHealthReport(): Promise<any>
-  quickHealthCheck(): Promise<any>
+  detectDuplicates(): Promise<unknown>
+  verifyAllContentIntegrity(): Promise<unknown>
+  verifySeriesIntegrity(series: Series | SeriesSearchResult): Promise<unknown>
+  resolveContentIssues(duplicates: unknown, integrity: unknown, options: unknown): Promise<unknown>
+  generateContentHealthReport(): Promise<unknown>
+  quickHealthCheck(): Promise<unknown>
 }

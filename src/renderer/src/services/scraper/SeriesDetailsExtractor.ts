@@ -162,7 +162,7 @@ export class SeriesDetailsExtractor {
    * @param sourceUrl Original URL for reference
    * @returns Promise<SeriesDetails> Parsed series details
    */
-  private async parseSeriesDetailsPage($: any, sourceUrl: string): Promise<SeriesDetails> {
+  private async parseSeriesDetailsPage($: cheerio.CheerioAPI, sourceUrl: string): Promise<SeriesDetails> {
     // Extract basic series information (Requirements 4.1, 4.2)
     const title = this.extractTitle($)
     const alternativeTitles = this.extractAlternativeTitles($)
@@ -205,7 +205,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract series title from various possible selectors
    */
-  private extractTitle($: any): string {
+  private extractTitle($: cheerio.CheerioAPI): string {
     const titleSelectors = [
       '.post-title h1',
       '.post-title h3',
@@ -231,7 +231,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract alternative titles
    */
-  private extractAlternativeTitles($: any): string[] {
+  private extractAlternativeTitles($: cheerio.CheerioAPI): string[] {
     const altTitleSelectors = [
       '.alternative-titles',
       '.alt-titles',
@@ -243,8 +243,8 @@ export class SeriesDetailsExtractor {
 
     for (const selector of altTitleSelectors) {
       const elements = $(selector)
-      elements.each((_: any, element: any) => {
-        const text = $(element).text().trim()
+      elements.each((_: number, element: unknown) => {
+        const text = $(element as any).text().trim()
         if (text) {
           // Split by common separators
           const titles = text.split(/[;,\n]/).map((t: string) => t.trim()).filter((t: string) => t.length > 0)
@@ -259,7 +259,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract author information
    */
-  private extractAuthor($: any): string {
+  private extractAuthor($: cheerio.CheerioAPI): string {
     const authorSelectors = [
       '.author',
       '.series-author',
@@ -287,7 +287,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract artist information
    */
-  private extractArtist($: any): string {
+  private extractArtist($: cheerio.CheerioAPI): string {
     const artistSelectors = [
       '.artist',
       '.series-artist',
@@ -313,7 +313,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract synopsis/description
    */
-  private extractSynopsis($: any): string {
+  private extractSynopsis($: cheerio.CheerioAPI): string {
     const synopsisSelectors = [
       '.description-summary .summary__content',
       '.synopsis',
@@ -363,7 +363,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract and process cover image with quality preservation (Requirement 4.3)
    */
-  private extractCoverImage($: any): string {
+  private extractCoverImage($: cheerio.CheerioAPI): string {
     const imageSelectors = [
       '.summary_image img',
       '.series-cover img',
@@ -420,7 +420,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract genres
    */
-  private extractGenres($: any): string[] {
+  private extractGenres($: cheerio.CheerioAPI): string[] {
     const genreSelectors = [
       '.genres a',
       '.genre-list a',
@@ -434,8 +434,8 @@ export class SeriesDetailsExtractor {
 
     for (const selector of genreSelectors) {
       const elements = $(selector)
-      elements.each((_: any, element: any) => {
-        const genre = $(element).text().trim()
+      elements.each((_: number, element: unknown) => {
+        const genre = $(element as any).text().trim()
         if (genre && !genres.includes(genre)) {
           genres.push(genre)
         }
@@ -453,7 +453,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract series status
    */
-  private extractStatus($: any): 'ongoing' | 'completed' | 'hiatus' {
+  private extractStatus($: cheerio.CheerioAPI): 'ongoing' | 'completed' | 'hiatus' {
     const statusSelectors = [
       '.status',
       '.series-status',
@@ -485,7 +485,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract rating
    */
-  private extractRating($: any): number {
+  private extractRating($: cheerio.CheerioAPI): number {
     const ratingSelectors = [
       '.rating',
       '.score',
@@ -515,7 +515,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract view count
    */
-  private extractViewCount($: any): number {
+  private extractViewCount($: cheerio.CheerioAPI): number {
     const viewSelectors = [
       '.views',
       '.view-count',
@@ -545,7 +545,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract last updated date
    */
-  private extractLastUpdated($: any): Date {
+  private extractLastUpdated($: cheerio.CheerioAPI): Date {
     const dateSelectors = [
       '.last-updated',
       '.updated-date',
@@ -571,7 +571,7 @@ export class SeriesDetailsExtractor {
   /**
    * Extract complete chapter list with information (Requirement 4.2)
    */
-  private async extractChapterList($: any): Promise<ChapterInfo[]> {
+  private async extractChapterList($: cheerio.CheerioAPI): Promise<ChapterInfo[]> {
     const chapters: ChapterInfo[] = []
 
     const chapterSelectors = [
@@ -583,7 +583,7 @@ export class SeriesDetailsExtractor {
       '.chapter-entry'
     ]
 
-    let chapterElements: any = null
+    let chapterElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the chapter list
     for (const selector of chapterSelectors) {
@@ -604,9 +604,9 @@ export class SeriesDetailsExtractor {
     }
 
     // Parse each chapter item
-    chapterElements.each((index: number, element: any) => {
+    chapterElements.each((index: number, element: unknown) => {
       try {
-        const chapter = this.parseChapterItem($, $(element), index)
+        const chapter = this.parseChapterItem($, $(element as any) as cheerio.Cheerio<any>, index)
         if (chapter) {
           chapters.push(chapter)
         }
@@ -632,7 +632,7 @@ export class SeriesDetailsExtractor {
   /**
    * Parse individual chapter item from HTML element
    */
-  private parseChapterItem($: any, element: any, index: number): ChapterInfo | null {
+  private parseChapterItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, index: number): ChapterInfo | null {
     try {
       // Extract chapter title and URL
       const titleSelectors = ['a', '.chapter-title a', '.chapter-name a', '.title']

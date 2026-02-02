@@ -136,7 +136,7 @@ export class LatestReleasesExtractor {
   /**
    * Parse the latest releases section from the homepage HTML
    */
-  private async parseLatestReleasesSection($: any): Promise<LatestRelease[]> {
+  private async parseLatestReleasesSection($: cheerio.CheerioAPI): Promise<LatestRelease[]> {
     const releases: LatestRelease[] = []
 
     // Common selectors for latest releases sections on manhwaz.com
@@ -149,7 +149,7 @@ export class LatestReleasesExtractor {
       '.recent-updates .item'
     ]
 
-    let releaseElements: any = null
+    let releaseElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the latest releases section
     for (const selector of possibleSelectors) {
@@ -171,9 +171,9 @@ export class LatestReleasesExtractor {
     }
 
     // Parse each release item
-    releaseElements.each((_index: number, element: any) => {
+    releaseElements.each((_index: number, element: unknown) => {
       try {
-        const release = this.parseReleaseItem($, $(element), _index)
+        const release = this.parseReleaseItem($, $(element as any) as cheerio.Cheerio<any>, _index)
         if (release) {
           releases.push(release)
         }
@@ -191,7 +191,7 @@ export class LatestReleasesExtractor {
   /**
    * Parse individual release item from HTML element
    */
-  private parseReleaseItem($: any, element: any, _index: number): LatestRelease | null {
+  private parseReleaseItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, _index: number): LatestRelease | null {
     try {
       // Extract series title
       const titleSelectors = [

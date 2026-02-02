@@ -11,8 +11,8 @@ export class IpcManager {
      * @param channel The IPC channel to handle
      * @param handler The handler function
      */
-    static handle(channel: string, handler: (event: IpcMainInvokeEvent, ...args: any[]) => Promise<any> | any): void {
-        ipcMain.handle(channel, async (event: IpcMainInvokeEvent, ...args: any[]) => {
+    static handle(channel: string, handler: (event: IpcMainInvokeEvent, ...args: unknown[]) => Promise<unknown> | unknown): void {
+        ipcMain.handle(channel, async (event: IpcMainInvokeEvent, ...args: unknown[]) => {
             // Create a unique operation name for the logger
             const operationName = `IPC:${channel}`;
 

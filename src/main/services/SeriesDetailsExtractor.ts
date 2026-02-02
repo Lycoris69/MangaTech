@@ -248,8 +248,8 @@ export class SeriesDetailsExtractor {
 
     for (const selector of altTitleSelectors) {
       const elements = $(selector)
-      elements.each((_, element) => {
-        const text = $(element).text().trim()
+      elements.each((_: number, element: unknown) => {
+        const text = $(element as any).text().trim()
         if (text) {
           // Split by common separators
           const titles = text.split(/[;,\n]/).map(t => t.trim()).filter(t => t.length > 0)
@@ -432,8 +432,8 @@ export class SeriesDetailsExtractor {
 
     for (const selector of genreSelectors) {
       const elements = $(selector)
-      elements.each((_, element) => {
-        const genre = $(element).text().trim()
+      elements.each((_: number, element: unknown) => {
+        const genre = $(element as any).text().trim()
         if (genre && !genres.includes(genre)) {
           genres.push(genre)
         }
@@ -577,8 +577,8 @@ export class SeriesDetailsExtractor {
 
     // 2. Chapter list check (check first 3 items to avoid pinned old chapters)
     const chapterDateElements = $('.chapter-release-date i, .chapter-release-date, .chapter-item .date').slice(0, 3)
-    chapterDateElements.each((_, el) => {
-      const dateText = $(el).text().trim()
+    chapterDateElements.each((_: number, el: unknown) => {
+      const dateText = $(el as any).text().trim()
       const parsedDate = this.parseDate(dateText)
       if (parsedDate) {
         candidateDates.push(parsedDate)
@@ -638,9 +638,9 @@ export class SeriesDetailsExtractor {
     }
 
     // Parse each chapter item
-    chapterElements.each((index, element) => {
+    chapterElements.each((index: number, element: unknown) => {
       try {
-        const chapter = this.parseChapterItem($, $(element), index)
+        const chapter = this.parseChapterItem($, $(element as any) as cheerio.Cheerio<any>, index)
         if (chapter) {
           chapters.push(chapter)
         }

@@ -134,7 +134,7 @@ export class HotScansExtractor {
   /**
    * Parse the hot scans/trending section from the homepage HTML
    */
-  private async parseHotScansSection($: any): Promise<HotScan[]> {
+  private async parseHotScansSection($: cheerio.CheerioAPI): Promise<HotScan[]> {
     const hotScans: HotScan[] = []
 
     // Common selectors for hot scans/trending sections on manhwaz.com
@@ -145,7 +145,7 @@ export class HotScansExtractor {
       '.trending-manga .item'
     ]
 
-    let hotScanElements: any = null
+    let hotScanElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the hot scans section
     for (const selector of possibleSelectors) {
@@ -166,9 +166,9 @@ export class HotScansExtractor {
     }
 
     // Parse each hot scan item
-    hotScanElements.each((_index: number, element: any) => {
+    hotScanElements.each((_index: number, element: unknown) => {
       try {
-        const hotScan = this.parseHotScanItem($, $(element), _index)
+        const hotScan = this.parseHotScanItem($, $(element as any) as cheerio.Cheerio<any>, _index)
         if (hotScan) {
           hotScans.push(hotScan)
         }
@@ -187,7 +187,7 @@ export class HotScansExtractor {
   /**
    * Parse individual hot scan item from HTML element
    */
-  private parseHotScanItem($: any, element: any, _index: number): HotScan | null {
+  private parseHotScanItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, _index: number): HotScan | null {
     try {
       // Extract series title
       const titleSelectors = [
@@ -285,8 +285,8 @@ export class HotScansExtractor {
       for (const selector of genreSelectors) {
         const genreElements = element.find(selector)
         if (genreElements.length > 0) {
-          genreElements.find('a, span, .tag').each((_: any, genreEl: any) => {
-            const genre = $(genreEl).text().trim()
+          genreElements.find('a, span, .tag').each((_: number, genreEl: unknown) => {
+            const genre = $(genreEl as any).text().trim()
             if (genre && !genres.includes(genre)) {
               genres.push(genre)
             }

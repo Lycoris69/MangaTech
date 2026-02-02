@@ -198,7 +198,7 @@ class MangaTechApp {
       }
     });
 
-    IpcManager.handle('storage:write', async (_, filename: string, data: any) => {
+    IpcManager.handle('storage:write', async (_, filename: string, data: unknown) => {
       try {
         const filePath = path.join(this.dataDir, filename);
         await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
@@ -275,7 +275,7 @@ class MangaTechApp {
         try {
           const libraryPath = path.join(this.dataDir, 'user-library.json');
           const libraryData = JSON.parse(await fs.readFile(libraryPath, 'utf-8'));
-          const download = libraryData.downloads?.find((d: any) => d.seriesId === seriesId);
+          const download = libraryData.downloads?.find((d: { seriesId: string; downloadPath: string }) => d.seriesId === seriesId);
 
           if (download && download.downloadPath) {
             const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -378,7 +378,7 @@ class MangaTechApp {
     });
 
     IpcManager.handle('scraper:scanLocalDownloads', async (_, basePath: string) => {
-      const results: any[] = [];
+      const results: { title: string; path: string; chapters: { id: string; title: string; path: string }[] }[] = [];
       const entries = await fs.readdir(basePath, { withFileTypes: true });
 
       const isChapterLike = async (dirPath: string) => {
@@ -389,7 +389,7 @@ class MangaTechApp {
       };
 
       // Check if base folder itself is a series
-      const baseChapters: any[] = [];
+      const baseChapters: { id: string; title: string; path: string }[] = [];
       for (const entry of entries) {
         if (entry.isDirectory()) {
           const p = path.join(basePath, entry.name);
@@ -410,7 +410,7 @@ class MangaTechApp {
 
           try {
             const subEntries = await fs.readdir(seriesPath, { withFileTypes: true });
-            const chapters: any[] = [];
+            const chapters: { id: string; title: string; path: string }[] = [];
             for (const sub of subEntries) {
               if (sub.isDirectory() && await isChapterLike(path.join(seriesPath, sub.name))) {
                 chapters.push({ id: sub.name, title: sub.name, path: path.join(seriesPath, sub.name) });

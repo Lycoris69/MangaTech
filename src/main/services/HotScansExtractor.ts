@@ -191,9 +191,9 @@ export class HotScansExtractor {
     }
 
     // Parse each hot scan item
-    hotScanElements.each((_index, element) => {
+    hotScanElements.each((_index: number, element: unknown) => {
       try {
-        const hotScan = this.parseHotScanItem($, $(element), _index)
+        const hotScan = this.parseHotScanItem($, $(element as any) as cheerio.Cheerio<any>, _index)
         if (hotScan) {
           hotScans.push(hotScan)
         }
@@ -298,7 +298,7 @@ export class HotScansExtractor {
 
       // Extract rank (use index + 1 if no explicit rank found)
       const rankSelectors = ['.rank', '.position', '.number', '.ranking']
-      let rank = index + 1 // Default to position in list
+      let rank = _index + 1 // Default to position in list
 
       for (const selector of rankSelectors) {
         const rankElement = element.find(selector).first()
@@ -319,8 +319,8 @@ export class HotScansExtractor {
       for (const selector of genreSelectors) {
         const genreElements = element.find(selector)
         if (genreElements.length > 0) {
-          genreElements.find('a, span, .tag').each((_, genreEl) => {
-            const genre = $(genreEl).text().trim()
+          genreElements.find('a, span, .tag').each((_, genreEl: unknown) => {
+            const genre = $(genreEl as any).text().trim()
             if (genre && !genres.includes(genre)) {
               genres.push(genre)
             }

@@ -1,5 +1,5 @@
 import { WebScrapingService, ScrapingError } from './WebScrapingService'
-import { ManhwazScraper } from './ManhwazScraper'
+import { ManhwazScraper } from './scraper/ManhwazScraper'
 import { Series, SeriesSearchResult, TrendingContent, PageUrl } from '../types'
 
 // Configuration for manga sources

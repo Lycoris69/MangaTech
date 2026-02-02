@@ -1,5 +1,5 @@
 import { ErrorHandler, ErrorContext } from './ErrorHandler'
-import { OperationLogger } from './OperationLogger'
+import { OperationLogger, PerformanceMetrics, OperationMetrics } from './OperationLogger'
 import { MetricsCollector } from './MetricsCollector'
 import { errorHandler } from './ErrorHandler'
 import { operationLogger } from './OperationLogger'
@@ -22,6 +22,20 @@ export interface MonitoringResult<T> {
     responseTime: number
     retryCount: number
   }
+}
+
+export interface HealthMetrics {
+  successRate: number
+  averageResponseTime: number
+  errorRate: number
+  activeOperations: number
+}
+
+export interface SystemHealthReport {
+  overallSuccessRate: number
+  averageResponseTime: number
+  errorRate: number
+  activeOperations: number
 }
 
 /**
@@ -178,7 +192,7 @@ export class ScrapingMonitor {
     concurrency: number = 3
   ): Promise<MonitoringResult<T>[]> {
     const results: MonitoringResult<T>[] = []
-    
+
     // Process operations in batches to respect concurrency limit
     for (let i = 0; i < operations.length; i += concurrency) {
       const batch = operations.slice(i, i + concurrency)
@@ -195,11 +209,11 @@ export class ScrapingMonitor {
    */
   getMonitoringStats(): {
     errorStats: Record<string, number>
-    performanceMetrics: any[]
-    systemHealth: any
+    performanceMetrics: PerformanceMetrics[]
+    systemHealth: SystemHealthReport
   } {
     const report = this.metricsCollector.generateMetricsReport()
-    
+
     return {
       errorStats: this.errorHandler.getErrorStatistics(),
       performanceMetrics: report.performanceMetrics,
@@ -213,16 +227,11 @@ export class ScrapingMonitor {
   checkSystemHealth(): {
     healthy: boolean
     issues: string[]
-    metrics: {
-      successRate: number
-      averageResponseTime: number
-      errorRate: number
-      activeOperations: number
-    }
+    metrics: HealthMetrics
   } {
     const report = this.metricsCollector.generateMetricsReport()
     const health = report.systemHealth
-    
+
     const issues: string[] = []
     let healthy = true
 
@@ -267,9 +276,9 @@ export class ScrapingMonitor {
    */
   generateReport(): {
     timestamp: string
-    systemHealth: any
-    recentErrors: any[]
-    performanceMetrics: any[]
+    systemHealth: SystemHealthReport
+    recentErrors: OperationMetrics[]
+    performanceMetrics: PerformanceMetrics[]
     recommendations: string[]
   } {
     const report = this.metricsCollector.generateMetricsReport()

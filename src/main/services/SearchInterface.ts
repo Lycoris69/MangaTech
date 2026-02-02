@@ -245,9 +245,9 @@ export class SearchInterface {
       return results
     }
 
-    $results.each((_index, element) => {
+    $results.each((_index: number, element: unknown) => {
       try {
-        const $item = $(element)
+        const $item = $(element as any) as cheerio.Cheerio<any>
 
         // Extract basic information
         const titleElement = $item.find('.post-title a, h3 a, h2 a, .title a, .manga-title a').first()
@@ -291,8 +291,8 @@ export class SearchInterface {
         // Extract genres
         const genreElements = $item.find('.genres a, .genre a, .manga-genres a')
         const genres: string[] = []
-        genreElements.each((_, genreEl) => {
-          const genre = $(genreEl).text().trim()
+        genreElements.each((_: number, genreEl: unknown) => {
+          const genre = $(genreEl as any).text().trim()
           if (genre) {
             genres.push(genre)
           }
@@ -413,11 +413,11 @@ export class SearchInterface {
   /**
    * Parse autocomplete API response
    */
-  private parseAutocompleteResponse(data: any, query: string): AutocompleteResult[] {
+  private parseAutocompleteResponse(data: unknown, query: string): AutocompleteResult[] {
     const suggestions: AutocompleteResult[] = []
 
     if (Array.isArray(data)) {
-      for (const item of data) {
+      for (const item of data as Array<{ title?: string }>) {
         if (item.title && typeof item.title === 'string') {
           suggestions.push({
             suggestion: item.title,

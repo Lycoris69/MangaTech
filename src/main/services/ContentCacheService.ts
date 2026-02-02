@@ -109,7 +109,7 @@ const DEFAULT_WARMING_CONFIG: CacheWarmingConfig = {
  */
 export class ContentCacheService {
   private static logger: winston.Logger
-  private memoryCache: Map<string, CacheEntry<any>> = new Map()
+  private memoryCache: Map<string, CacheEntry<unknown>> = new Map()
   private diskCachePath: string
   private config: CacheConfig
   private warmingConfig: CacheWarmingConfig
@@ -367,10 +367,11 @@ export class ContentCacheService {
 
     // Check if file still exists
     try {
-      await fs.access(entry.data)
+      const dataPath = entry.data as string
+      await fs.access(dataPath)
       entry.accessCount++
       entry.lastAccessed = Date.now()
-      return entry.data
+      return dataPath
     } catch {
       // File doesn't exist, remove from cache
       this.memoryCache.delete(cacheKey)
@@ -620,7 +621,7 @@ export class ContentCacheService {
       const metadata = JSON.parse(data)
 
       // Restore valid entries to memory cache
-      for (const entry of metadata.entries || []) {
+      for (const entry of (metadata.entries as CacheEntry<unknown>[] || [])) {
         if (Date.now() < entry.expiresAt) {
           this.memoryCache.set(entry.key, entry)
         }
@@ -639,7 +640,7 @@ export class ContentCacheService {
   /**
    * Save entry to disk cache
    */
-  private async saveToDiskCache(key: string, entry: CacheEntry<any>): Promise<void> {
+  private async saveToDiskCache(key: string, entry: CacheEntry<unknown>): Promise<void> {
     try {
       const dataPath = path.join(this.diskCachePath, 'data', `${key.replace(/[:/]/g, '_')}.json`)
       await fs.writeFile(dataPath, JSON.stringify(entry.data))

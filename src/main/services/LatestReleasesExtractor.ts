@@ -188,9 +188,9 @@ export class LatestReleasesExtractor {
     }
 
     // Parse each release item
-    releaseElements.each((_index, element) => {
+    releaseElements.each((_index: number, element: unknown) => {
       try {
-        const release = this.parseReleaseItem($, $(element), _index)
+        const release = this.parseReleaseItem($, $(element as any) as cheerio.Cheerio<any>, _index)
         if (release) {
           releases.push(release)
         }

@@ -209,7 +209,7 @@ export class SearchInterface {
    * Parse search results from manhwaz.com HTML
    * Requirement 3.3: Show series titles, cover images, authors, and brief descriptions
    */
-  private parseSearchResults($: any, query: string): SeriesSearchResult[] {
+  private parseSearchResults($: cheerio.CheerioAPI, query: string): SeriesSearchResult[] {
     const results: SeriesSearchResult[] = []
 
     // manhwaz.com search results are typically in a grid or list format
@@ -224,7 +224,7 @@ export class SearchInterface {
       '.wp-manga-item'
     ]
 
-    let $results: any = null
+    let $results: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find search results
     for (const selector of resultSelectors) {
@@ -240,9 +240,9 @@ export class SearchInterface {
       return results
     }
 
-    $results.each((_index: number, element: any) => {
+    $results.each((_index: number, element: unknown) => {
       try {
-        const $item = $(element)
+        const $item = $(element as any) as cheerio.Cheerio<any>
 
         // Extract basic information
         const titleElement = $item.find('.post-title a, h3 a, h2 a, .title a, .manga-title a').first()
@@ -292,8 +292,8 @@ export class SearchInterface {
         // Extract genres
         const genreElements = $item.find('.genres a, .genre a, .manga-genres a')
         const genres: string[] = []
-        genreElements.each((_: any, genreEl: any) => {
-          const genre = $(genreEl).text().trim()
+        genreElements.each((_: number, genreEl: unknown) => {
+          const genre = $(genreEl as any).text().trim()
           if (genre) {
             genres.push(genre)
           }
@@ -415,13 +415,13 @@ export class SearchInterface {
   /**
    * Extract autocomplete suggestions from search page
    */
-  private extractAutocompleteSuggestions($: any, query: string): AutocompleteResult[] {
+  private extractAutocompleteSuggestions($: cheerio.CheerioAPI, query: string): AutocompleteResult[] {
     const suggestions: AutocompleteResult[] = []
 
     // Extract popular searches or related terms if available
     const popularSearches = $('.popular-searches a, .trending-searches a, .related-searches a')
-    popularSearches.each((_: any, element: any) => {
-      const suggestion = $(element).text().trim()
+    popularSearches.each((_: number, element: any) => {
+      const suggestion = $(element as any).text().trim()
       if (suggestion && suggestion.toLowerCase() !== query.toLowerCase()) {
         suggestions.push({
           suggestion,
@@ -432,8 +432,8 @@ export class SearchInterface {
 
     // Extract genre suggestions
     const genreLinks = $('.genre-filter a, .genres a, .manga-genres a')
-    genreLinks.each((_: any, element: any) => {
-      const genre = $(element).text().trim()
+    genreLinks.each((_: number, element: any) => {
+      const genre = $(element as any).text().trim()
       if (genre && genre.toLowerCase().includes(query.toLowerCase())) {
         suggestions.push({
           suggestion: genre,
@@ -448,11 +448,11 @@ export class SearchInterface {
   /**
    * Parse autocomplete API response
    */
-  private parseAutocompleteResponse(data: any, query: string): AutocompleteResult[] {
+  private parseAutocompleteResponse(data: unknown, query: string): AutocompleteResult[] {
     const suggestions: AutocompleteResult[] = []
 
     if (Array.isArray(data)) {
-      for (const item of data) {
+      for (const item of data as Array<{ title?: string }>) {
         if (item.title && typeof item.title === 'string') {
           suggestions.push({
             suggestion: item.title,
@@ -575,7 +575,7 @@ export class SearchInterface {
   /**
    * Extract total count from search page
    */
-  private extractTotalCount($: any): number {
+  private extractTotalCount($: cheerio.CheerioAPI): number {
     // Look for total count indicators
     const countSelectors = [
       '.search-count',
@@ -616,7 +616,7 @@ export class SearchInterface {
   /**
    * Check if there are more results available
    */
-  private checkHasMore($: any, currentCount: number, options: SearchOptions): boolean {
+  private checkHasMore($: cheerio.CheerioAPI, currentCount: number, options: SearchOptions): boolean {
     // Look for pagination indicators
     const paginationSelectors = [
       '.pagination .next',

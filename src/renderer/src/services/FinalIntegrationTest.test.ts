@@ -5,11 +5,11 @@
  * Focuses on integration aspects without full scraper execution
  */
 
-import { ManhwazScraper } from './ManhwazScraper'
-import { URLManager } from './URLManager'
-import { RateLimiter } from './RateLimiter'
-import { ContentValidator } from './ContentValidator'
-import { ContentCacheService } from './ContentCacheService'
+import { ManhwazScraper } from './scraper/ManhwazScraper'
+import { URLManager } from './scraper/URLManager'
+import { RateLimiter } from './scraper/RateLimiter'
+import { ContentValidator } from './scraper/ContentValidator'
+import { ContentCacheService } from './scraper/ContentCacheService'
 
 // Mock external dependencies
 jest.mock('axios', () => ({

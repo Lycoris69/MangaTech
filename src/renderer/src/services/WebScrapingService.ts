@@ -1,10 +1,9 @@
-import puppeteer, { Browser, Page } from 'puppeteer'
-import { Series, Chapter, SeriesSearchResult, TrendingContent, PageUrl } from '../types'
+import { Series, SeriesSearchResult, TrendingContent, PageUrl } from '../types'
 import { errorService } from './ErrorService'
 import { ErrorType, ErrorSeverity } from '../types/errors'
 
 // Rate limiting configuration
-interface RateLimitConfig {
+export interface RateLimitConfig {
   requestsPerSecond: number
   burstLimit: number
   retryAttempts: number
@@ -22,7 +21,7 @@ const DEFAULT_RATE_LIMIT: RateLimitConfig = {
 // Request queue item
 interface QueuedRequest {
   url: string
-  resolve: (value: any) => void
+  resolve: (value: unknown) => void
   reject: (error: Error) => void
   timestamp: number
   attempts: number
@@ -39,7 +38,6 @@ export interface WebScrapingService {
 
 // Base scraper class with common functionality
 export abstract class BaseScraper implements WebScrapingService {
-  protected browser: Browser | null = null
   protected rateLimitConfig: RateLimitConfig
   private requestQueue: QueuedRequest[] = []
   private isProcessingQueue = false
@@ -51,80 +49,24 @@ export abstract class BaseScraper implements WebScrapingService {
     this.rateLimitConfig = { ...DEFAULT_RATE_LIMIT, ...rateLimitConfig }
   }
 
-  // Initialize browser instance
-  protected async initializeBrowser(): Promise<void> {
-    if (!this.browser) {
-      try {
-        this.browser = await puppeteer.launch({
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
-          ]
-        })
-      } catch (error) {
-        const appError = errorService.createError(
-          ErrorType.SCRAPING,
-          'Failed to initialize browser for web scraping',
-          {
-            severity: ErrorSeverity.HIGH,
-            details: error instanceof Error ? error.message : 'Unknown error',
-            retryable: true,
-            originalError: error instanceof Error ? error : undefined
-          }
-        )
-        throw new Error(appError.userMessage)
-      }
-    }
+  // Placeholder for initialization if needed
+  protected async initialize(): Promise<void> {
+    // To be implemented by subclasses
   }
 
-  // Create a new page with common settings
-  protected async createPage(): Promise<Page> {
-    await this.initializeBrowser()
-    if (!this.browser) {
-      throw new Error('Browser not initialized')
-    }
-
-    const page = await this.browser.newPage()
-    
-    // Set user agent to avoid detection
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-    
-    // Set viewport
-    await page.setViewport({ width: 1920, height: 1080 })
-    
-    // Block unnecessary resources to speed up loading
-    await page.setRequestInterception(true)
-    page.on('request', (req) => {
-      const resourceType = req.resourceType()
-      if (resourceType === 'stylesheet' || resourceType === 'font' || resourceType === 'media') {
-        req.abort()
-      } else {
-        req.continue()
-      }
-    })
-
-    return page
-  }
-
-  // Rate-limited request method
-  protected async makeRequest<T>(url: string, requestHandler: (page: Page) => Promise<T>): Promise<T> {
+  // Rate-limited request method (simplified for non-browser fetch)
+  protected async makeRequest<T>(url: string, requestHandler: (url: string) => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       const queuedRequest: QueuedRequest = {
         url,
-        resolve: async (page: Page) => {
+        resolve: (async () => {
           try {
-            const result = await requestHandler(page)
-            resolve(result)
+            const result = await requestHandler(url)
+            resolve(result as T)
           } catch (error) {
-            reject(error)
+            reject(error as Error)
           }
-        },
+        }) as (value: unknown) => void,
         reject,
         timestamp: Date.now(),
         attempts: 0
@@ -145,7 +87,7 @@ export abstract class BaseScraper implements WebScrapingService {
 
     while (this.requestQueue.length > 0) {
       const now = Date.now()
-      
+
       // Reset window if needed
       if (now - this.windowStart >= 1000) {
         this.windowStart = now
@@ -162,7 +104,7 @@ export abstract class BaseScraper implements WebScrapingService {
       }
 
       const request = this.requestQueue.shift()!
-      
+
       try {
         // Ensure minimum delay between requests
         const timeSinceLastRequest = now - this.lastRequestTime
@@ -171,18 +113,17 @@ export abstract class BaseScraper implements WebScrapingService {
           await this.delay(minDelay - timeSinceLastRequest)
         }
 
-        const page = await this.createPage()
-        
         try {
-          await request.resolve(page)
+          await request.resolve(request.url)
           this.requestCount++
           this.lastRequestTime = Date.now()
-        } finally {
-          await page.close()
+        } catch (error) {
+          // Inner catch to ensure we don't crash the queue processing
+          throw error
         }
       } catch (error) {
         request.attempts++
-        
+
         if (request.attempts < this.rateLimitConfig.retryAttempts) {
           // Exponential backoff for retries
           const delay = this.rateLimitConfig.retryDelay * Math.pow(2, request.attempts - 1)
@@ -205,12 +146,10 @@ export abstract class BaseScraper implements WebScrapingService {
   // Validate that a source URL is accessible
   public async validateSource(sourceUrl: string): Promise<boolean> {
     try {
-      return await this.makeRequest(sourceUrl, async (page) => {
-        const response = await page.goto(sourceUrl, { 
-          waitUntil: 'networkidle2',
-          timeout: 30000 
-        })
-        return response?.ok() ?? false
+      // Basic check - subclasses should implement more robust validation
+      return await this.makeRequest(sourceUrl, async (url) => {
+        const response = await fetch(url, { method: 'HEAD' })
+        return response.ok
       })
     } catch (error) {
       console.error(`Failed to validate source ${sourceUrl}:`, error)
@@ -220,10 +159,7 @@ export abstract class BaseScraper implements WebScrapingService {
 
   // Clean up resources
   public async cleanup(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close()
-      this.browser = null
-    }
+    // To be implemented by subclasses
   }
 
   // Abstract methods to be implemented by concrete scrapers

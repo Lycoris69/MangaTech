@@ -4,7 +4,7 @@ import { DownloadManager } from './DownloadManager';
 import { OnlineReadingService } from './OnlineReadingService';
 import { StorageService } from './StorageService';
 import { PerformanceOptimizer } from './PerformanceOptimizer';
-import { Series, Chapter } from '../types';
+import { Series, Chapter, SeriesSearchResult } from '../types';
 
 /**
  * Integration tests for the complete manga reader application
@@ -23,12 +23,18 @@ describe('MangaTech Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    storageService = new StorageService();
     scraperManager = new ScraperManager();
     libraryService = new LibraryService();
-    downloadManager = new DownloadManager();
-    storageService = new StorageService();
-    onlineReadingService = new OnlineReadingService(scraperManager, storageService, { isOnline: true });
-    performanceOptimizer = new PerformanceOptimizer();
+    // Providing required constructor arguments for DownloadManager
+    downloadManager = new DownloadManager(
+      storageService,
+      {} as any, // FileSystemService
+      scraperManager
+    );
+    onlineReadingService = new OnlineReadingService(scraperManager, storageService);
+    // Providing required constructor arguments for PerformanceOptimizer
+    performanceOptimizer = new PerformanceOptimizer({} as any);
 
     // Initialize storage
     await storageService.initialize();
@@ -68,12 +74,13 @@ describe('MangaTech Integration Tests', () => {
         chapters: Array.from({ length: 10 }, (_, i) => ({
           id: `${seriesId}-chapter-${i + 1}`,
           seriesId,
-          chapterNumber: i + 1,
+          chapterNumber: (i + 1).toString(),
           title: `Chapter ${i + 1}`,
           pageCount: 20,
           publishDate: new Date(),
           isDownloaded: false,
-          sourceUrl: `https://example.com/chapter-${i + 1}`
+          sourceUrl: `https://example.com/chapter-${i + 1}`,
+          chapterUrl: `https://example.com/chapter-${i + 1}`
         }))
       };
     });
@@ -86,7 +93,7 @@ describe('MangaTech Integration Tests', () => {
     });
 
     // Mock download manager
-    jest.spyOn(downloadManager, 'downloadSelectedChapters').mockImplementation(async (series: any, chapterIds: string[]) => {
+    jest.spyOn(downloadManager, 'downloadSelectedChapters').mockImplementation(async (series: Series | SeriesSearchResult, chapterIds: string[]) => {
       return `download-${Date.now()}`;
     });
 
@@ -105,8 +112,8 @@ describe('MangaTech Integration Tests', () => {
 
       // 2. Get series details
       const seriesDetails = await scraperManager.getSeriesDetails(selectedSeries.id);
-      expect(seriesDetails).toHaveProperty('chapters');
-      expect(seriesDetails.chapters.length).toBeGreaterThan(0);
+      expect(seriesDetails.chapters).toBeTruthy();
+      expect((seriesDetails.chapters || []).length).toBeGreaterThan(0);
 
       // 3. Add to favorites
       await libraryService.addToFavorites(selectedSeries.id);
@@ -114,9 +121,9 @@ describe('MangaTech Integration Tests', () => {
       expect(favorites.some(fav => fav.seriesId === selectedSeries.id)).toBe(true);
 
       // 4. Start online reading
-      const firstChapter = seriesDetails.chapters[0];
+      const firstChapter = (seriesDetails.chapters || [])[0];
       await onlineReadingService.startOnlineReading(firstChapter.id);
-      
+
       const currentSession = onlineReadingService.getCurrentSession();
       expect(currentSession?.chapterId).toBe(firstChapter.id);
 
@@ -134,12 +141,11 @@ describe('MangaTech Integration Tests', () => {
 
       // 2. Get series details
       const seriesDetails = await scraperManager.getSeriesDetails(selectedSeries.id);
-      
+
       // 3. Download specific chapters
-      const chaptersToDownload = seriesDetails.chapters.slice(0, 3);
       const downloadTaskId = await downloadManager.downloadSelectedChapters(
-        selectedSeries,
-        chaptersToDownload.map(ch => ch.id)
+        selectedSeries as unknown as Series,
+        (seriesDetails.chapters || []).slice(0, 3).map(ch => ch.id)
       );
 
       expect(typeof downloadTaskId).toBe('string');
@@ -166,7 +172,7 @@ describe('MangaTech Integration Tests', () => {
       // 1. Add multiple series to favorites
       const series1 = 'test-series-1';
       const series2 = 'test-series-2';
-      
+
       await libraryService.addToFavorites(series1);
       await libraryService.addToFavorites(series2);
 
@@ -182,7 +188,7 @@ describe('MangaTech Integration Tests', () => {
       // 4. Get reading progress
       const progress1 = await libraryService.getReadingProgress(series1);
       const progress2 = await libraryService.getReadingProgress(series2);
-      
+
       expect(progress1).toHaveLength(2);
       expect(progress2).toHaveLength(1);
 
@@ -209,7 +215,7 @@ describe('MangaTech Integration Tests', () => {
       for (const contentType of contentTypes) {
         const results = await scraperManager.searchSeries(contentType.query);
         expect(results.length).toBeGreaterThan(0);
-        
+
         // Verify each result has required properties
         results.forEach(series => {
           expect(series).toHaveProperty('id');
@@ -223,7 +229,7 @@ describe('MangaTech Integration Tests', () => {
 
     it('should handle series with different statuses', async () => {
       const statuses = ['ongoing', 'completed', 'hiatus'];
-      
+
       for (const status of statuses) {
         // Mock series with different statuses
         const mockSeries: Series = {
@@ -233,7 +239,7 @@ describe('MangaTech Integration Tests', () => {
           synopsis: 'Test synopsis',
           coverImageUrl: 'https://example.com/cover.jpg',
           genres: ['Action', 'Adventure'],
-          status: status as any,
+          status: status as 'ongoing' | 'completed' | 'hiatus',
           rating: 4.5,
           totalChapters: 100,
           lastUpdated: new Date(),
@@ -242,7 +248,7 @@ describe('MangaTech Integration Tests', () => {
 
         await storageService.upsertSeries(mockSeries);
         const retrieved = await storageService.getSeriesById(mockSeries.id);
-        
+
         expect(retrieved).toBeTruthy();
         expect(retrieved?.status).toBe(status);
       }
@@ -250,7 +256,7 @@ describe('MangaTech Integration Tests', () => {
 
     it('should handle series with various chapter counts', async () => {
       const chapterCounts = [1, 50, 200, 1000]; // Different collection sizes
-      
+
       for (const count of chapterCounts) {
         const mockSeries: Series = {
           id: `test-chapters-${count}`,
@@ -267,12 +273,12 @@ describe('MangaTech Integration Tests', () => {
         };
 
         await storageService.upsertSeries(mockSeries);
-        
+
         // Test performance with different collection sizes
         const startTime = performance.now();
         const retrieved = await storageService.getSeriesById(mockSeries.id);
         const endTime = performance.now();
-        
+
         expect(retrieved).toBeTruthy();
         expect(retrieved?.totalChapters).toBe(count);
         expect(endTime - startTime).toBeLessThan(50); // Should be fast regardless of chapter count
@@ -292,16 +298,16 @@ describe('MangaTech Integration Tests', () => {
       // This tests the system's ability to handle many operations quickly
       // without the file system race conditions of true concurrency
       const results = [];
-      
+
       for (let i = 0; i < 10; i++) {
         const seriesId = `concurrent-series-${i}`;
-        
+
         // Add to favorites
         await libraryService.addToFavorites(seriesId);
-        
+
         // Mark as read
         await libraryService.markAsRead(seriesId, `chapter-${i}`, i + 1);
-        
+
         // Verify it was added
         const isFav = await libraryService.isFavorite(seriesId);
         results.push(isFav);
@@ -333,14 +339,14 @@ describe('MangaTech Integration Tests', () => {
 
       // Test performance optimization
       const startTime = performance.now();
-      
+
       performanceOptimizer.buildSearchIndex(largeSeries);
       const searchResults = performanceOptimizer.searchSeries('Series 500', largeSeries);
       const sortedResults = performanceOptimizer.sortSeries(largeSeries.slice(0, 100), 'title');
       const paginatedResults = performanceOptimizer.paginateResults(largeSeries, 1, 50);
-      
+
       const endTime = performance.now();
-      
+
       expect(endTime - startTime).toBeLessThan(200); // All operations under 200ms
       expect(searchResults.length).toBeGreaterThan(0);
       expect(sortedResults).toHaveLength(100);
@@ -350,7 +356,7 @@ describe('MangaTech Integration Tests', () => {
     it('should handle memory efficiently with large datasets', async () => {
       // Test memory usage with large collections
       const initialUsage = performanceOptimizer.getMemoryUsage();
-      
+
       // Create large dataset
       const largeSeries = Array.from({ length: 5000 }, (_, i) => ({
         id: `memory-test-${i}`,
@@ -368,15 +374,15 @@ describe('MangaTech Integration Tests', () => {
 
       performanceOptimizer.buildSearchIndex(largeSeries);
       performanceOptimizer.cacheSeries(largeSeries);
-      
+
       const peakUsage = performanceOptimizer.getMemoryUsage();
       expect(peakUsage.cacheSize).toBe(5000);
       expect(peakUsage.indexSize).toBeGreaterThan(0);
-      
+
       // Clear caches and verify memory is freed
       performanceOptimizer.clearCaches();
       const clearedUsage = performanceOptimizer.getMemoryUsage();
-      
+
       expect(clearedUsage.cacheSize).toBe(0);
       expect(clearedUsage.indexSize).toBe(0);
     });
@@ -415,7 +421,7 @@ describe('MangaTech Integration Tests', () => {
       };
 
       try {
-        await storageService.upsertSeries(invalidSeries as any);
+        await storageService.upsertSeries(invalidSeries as unknown as Series);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
       }
@@ -430,7 +436,7 @@ describe('MangaTech Integration Tests', () => {
         await libraryService.addToFavorites('test-series');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect(error.message).toContain('Failed to add to favorites');
+        expect((error as Error).message).toContain('Failed to add to favorites');
       }
 
       // Restore original function
@@ -441,30 +447,30 @@ describe('MangaTech Integration Tests', () => {
   describe('Data Integrity', () => {
     it('should maintain data consistency across operations', async () => {
       const seriesId = 'consistency-test';
-      
+
       // Add to favorites
       await libraryService.addToFavorites(seriesId);
-      
+
       // Mark multiple chapters as read
       await libraryService.markAsRead(seriesId, 'ch-1', 10);
       await libraryService.markAsRead(seriesId, 'ch-2', 5);
       await libraryService.markAsRead(seriesId, 'ch-3', 15);
-      
+
       // Verify consistency
       const favorites = await libraryService.getFavorites();
       const progress = await libraryService.getReadingProgress(seriesId);
       const lastRead = await libraryService.getLastReadChapter(seriesId);
-      
+
       expect(favorites.some(fav => fav.seriesId === seriesId)).toBe(true);
       expect(progress).toHaveLength(3);
       expect(lastRead).toBeTruthy();
-      
+
       // Remove from favorites and verify cleanup
       await libraryService.removeFromFavorites(seriesId);
       const updatedFavorites = await libraryService.getFavorites();
-      
+
       expect(updatedFavorites.some(fav => fav.seriesId === seriesId)).toBe(false);
-      
+
       // Reading progress should still exist (independent of favorites)
       const persistentProgress = await libraryService.getReadingProgress(seriesId);
       expect(persistentProgress).toHaveLength(3);
@@ -472,25 +478,25 @@ describe('MangaTech Integration Tests', () => {
 
     it('should handle duplicate operations correctly', async () => {
       const seriesId = 'duplicate-test';
-      
+
       // Add to favorites multiple times
       await libraryService.addToFavorites(seriesId);
       await libraryService.addToFavorites(seriesId);
       await libraryService.addToFavorites(seriesId);
-      
+
       const favorites = await libraryService.getFavorites();
       const seriesFavorites = favorites.filter(fav => fav.seriesId === seriesId);
-      
+
       expect(seriesFavorites).toHaveLength(1); // Should only appear once
-      
+
       // Mark same chapter as read multiple times
       await libraryService.markAsRead(seriesId, 'ch-1', 5);
       await libraryService.markAsRead(seriesId, 'ch-1', 10);
       await libraryService.markAsRead(seriesId, 'ch-1', 15);
-      
+
       const progress = await libraryService.getReadingProgress(seriesId);
       const chapterProgress = progress.filter(p => p.chapterId === 'ch-1');
-      
+
       expect(chapterProgress).toHaveLength(1); // Should only have latest progress
       expect(chapterProgress[0].pageNumber).toBe(15); // Should have latest page number
     });

@@ -186,8 +186,8 @@ export class ChapterExtractor {
           url: chapterUrl
         })
 
-        images.each((index, element) => {
-          const $img = $(element)
+        images.each((_index: number, element: unknown) => {
+          const $img = $(element as any)
 
           // Try multiple attributes for image URL
           let imageUrl = $img.attr('src') ||
@@ -243,8 +243,8 @@ export class ChapterExtractor {
     const urlToIndex = new Map<string, number>()
 
     // Find the DOM index for each URL
-    $('img').each((index, element) => {
-      const $img = $(element)
+    $('img').each((index: number, element: unknown) => {
+      const $img = $(element as any)
       const imageUrl = $img.attr('src') ||
         $img.attr('data-src') ||
         $img.attr('data-original') ||

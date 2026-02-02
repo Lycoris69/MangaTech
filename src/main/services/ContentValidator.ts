@@ -109,7 +109,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result
    */
-  validateLatestRelease(data: any, options?: ValidationOptions): ValidationResult {
+  validateLatestRelease(data: unknown, options?: ValidationOptions): ValidationResult {
     return this.validateWithSchema(data, latestReleaseSchema, 'LatestRelease', options)
   }
 
@@ -119,7 +119,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result
    */
-  validateHotScan(data: any, options?: ValidationOptions): ValidationResult {
+  validateHotScan(data: unknown, options?: ValidationOptions): ValidationResult {
     return this.validateWithSchema(data, hotScanSchema, 'HotScan', options)
   }
 
@@ -129,7 +129,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result
    */
-  validateSearchResult(data: any, options?: ValidationOptions): ValidationResult {
+  validateSearchResult(data: unknown, options?: ValidationOptions): ValidationResult {
     return this.validateWithSchema(data, searchResultSchema, 'SearchResult', options)
   }
 
@@ -139,7 +139,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result
    */
-  validateSeriesDetails(data: any, options?: ValidationOptions): ValidationResult {
+  validateSeriesDetails(data: unknown, options?: ValidationOptions): ValidationResult {
     return this.validateWithSchema(data, seriesDetailsSchema, 'SeriesDetails', options)
   }
 
@@ -149,7 +149,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result
    */
-  validateChapterInfo(data: any, options?: ValidationOptions): ValidationResult {
+  validateChapterInfo(data: unknown, options?: ValidationOptions): ValidationResult {
     return this.validateWithSchema(data, chapterInfoSchema, 'ChapterInfo', options)
   }
 
@@ -159,7 +159,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result
    */
-  validatePageData(data: any, options?: ValidationOptions): ValidationResult {
+  validatePageData(data: unknown, options?: ValidationOptions): ValidationResult {
     return this.validateWithSchema(data, pageDataSchema, 'PageData', options)
   }
 
@@ -169,7 +169,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result with details for each item
    */
-  validateLatestReleases(data: any[], options?: ValidationOptions): ValidationResult {
+  validateLatestReleases(data: unknown[], options?: ValidationOptions): ValidationResult {
     return this.validateArray(data, (item) =>
       this.validateLatestRelease(item, options), 'LatestReleases')
   }
@@ -180,7 +180,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result with details for each item
    */
-  validateHotScans(data: any[], options?: ValidationOptions): ValidationResult {
+  validateHotScans(data: unknown[], options?: ValidationOptions): ValidationResult {
     return this.validateArray(data, (item) =>
       this.validateHotScan(item, options), 'HotScans')
   }
@@ -191,7 +191,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result with details for each item
    */
-  validateSearchResults(data: any[], options?: ValidationOptions): ValidationResult {
+  validateSearchResults(data: unknown[], options?: ValidationOptions): ValidationResult {
     return this.validateArray(data, (item) =>
       this.validateSearchResult(item, options), 'SearchResults')
   }
@@ -202,7 +202,7 @@ export class ContentValidator {
    * @param options - Validation options
    * @returns Validation result with details for each item
    */
-  validatePageDataArray(data: any[], options?: ValidationOptions): ValidationResult {
+  validatePageDataArray(data: unknown[], options?: ValidationOptions): ValidationResult {
     return this.validateArray(data, (item) =>
       this.validatePageData(item, options), 'PageDataArray')
   }
@@ -242,7 +242,7 @@ export class ContentValidator {
    * @param requiredFields - Array of required field names
    * @returns Validation result
    */
-  validateCompleteness(data: any, requiredFields: string[]): ValidationResult {
+  validateCompleteness(data: unknown, requiredFields: string[]): ValidationResult {
     const errors: string[] = []
     const warnings: string[] = []
 
@@ -252,11 +252,11 @@ export class ContentValidator {
     }
 
     for (const field of requiredFields) {
-      if (!(field in data)) {
+      if (!(field in (data as Record<string, unknown>))) {
         errors.push(`Missing required field: ${field}`)
-      } else if (data[field] === null || data[field] === undefined) {
+      } else if ((data as Record<string, unknown>)[field] === null || (data as Record<string, unknown>)[field] === undefined) {
         errors.push(`Field '${field}' cannot be null or undefined`)
-      } else if (typeof data[field] === 'string' && data[field].trim() === '') {
+      } else if (typeof (data as Record<string, unknown>)[field] === 'string' && ((data as Record<string, unknown>)[field] as string).trim() === '') {
         warnings.push(`Field '${field}' is empty`)
       }
     }
@@ -272,7 +272,7 @@ export class ContentValidator {
    * Generic validation using Joi schema
    */
   private validateWithSchema(
-    data: any,
+    data: unknown,
     schema: Joi.ObjectSchema,
     typeName: string,
     options?: ValidationOptions

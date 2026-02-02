@@ -33,8 +33,8 @@ describe('URLManager', () => {
     })
 
     it('should handle null and undefined inputs', () => {
-      expect(urlManager.validateUrl(null as any)).toBe(false)
-      expect(urlManager.validateUrl(undefined as any)).toBe(false)
+      expect(urlManager.validateUrl(null as unknown as string)).toBe(false)
+      expect(urlManager.validateUrl(undefined as unknown as string)).toBe(false)
     })
   })
 
@@ -55,8 +55,8 @@ describe('URLManager', () => {
     })
 
     it('should handle null and undefined queries', () => {
-      expect(() => urlManager.buildSearchUrl(null as any)).toThrow('Search query must be a non-empty string')
-      expect(() => urlManager.buildSearchUrl(undefined as any)).toThrow('Search query must be a non-empty string')
+      expect(() => urlManager.buildSearchUrl(null as unknown as string)).toThrow('Search query must be a non-empty string')
+      expect(() => urlManager.buildSearchUrl(undefined as unknown as string)).toThrow('Search query must be a non-empty string')
     })
   })
 
@@ -168,8 +168,8 @@ describe('URLManager', () => {
 
     it('should handle empty or invalid inputs', () => {
       expect(urlManager.resolveUrl('')).toBe('')
-      expect(urlManager.resolveUrl(null as any)).toBe('')
-      expect(urlManager.resolveUrl(undefined as any)).toBe('')
+      expect(urlManager.resolveUrl(null as unknown as string)).toBe('')
+      expect(urlManager.resolveUrl(undefined as unknown as string)).toBe('')
     })
   })
 })

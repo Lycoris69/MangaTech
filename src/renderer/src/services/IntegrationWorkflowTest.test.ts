@@ -7,8 +7,9 @@
  * Tests error handling scenarios and scraper resilience
  */
 
-import { ManhwazScraper } from './ManhwazScraper'
-import { TrendingContent, LatestRelease, HotScan, SeriesDetails, PageData } from '../types'
+import { ManhwazScraper } from './scraper/ManhwazScraper'
+import { TrendingContent } from '../types'
+import axios from 'axios'
 
 // Mock axios to simulate network conditions
 const mockAxiosInstance = {
@@ -26,7 +27,7 @@ jest.mock('axios', () => ({
   head: jest.fn()
 }))
 
-const mockAxios = require('axios')
+const mockAxios = axios
 
 // Mock winston logger
 jest.mock('winston', () => ({

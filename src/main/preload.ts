@@ -1,20 +1,20 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 // Define the API that will be exposed to the renderer process
 export interface ElectronAPI {
   getVersion: () => Promise<string>;
   getPlatform: () => Promise<string>;
   storage: {
-    read: (filename: string) => Promise<any>;
-    write: (filename: string, data: any) => Promise<boolean>;
+    read: (filename: string) => Promise<unknown>;
+    write: (filename: string, data: unknown) => Promise<boolean>;
   };
   scraper: {
-    getTrendingContent: () => Promise<any>;
-    getLatestReleases: (page?: number) => Promise<any[]>;
-    getHotScans: () => Promise<any[]>;
-    searchSeries: (query: string) => Promise<any[]>;
-    getSeriesDetails: (seriesUrl: string) => Promise<any>;
-    getChapterPages: (chapterUrl: string, seriesId?: string) => Promise<any[]>;
+    getTrendingContent: () => Promise<unknown>;
+    getLatestReleases: (page?: number) => Promise<unknown[]>;
+    getHotScans: () => Promise<unknown[]>;
+    searchSeries: (query: string) => Promise<unknown[]>;
+    getSeriesDetails: (seriesUrl: string) => Promise<unknown>;
+    getChapterPages: (chapterUrl: string, seriesId?: string) => Promise<unknown[]>;
     downloadChapter: (params: {
       seriesId: string;
       chapterId: string;
@@ -22,21 +22,21 @@ export interface ElectronAPI {
       chapterTitle: string;
       basePath: string;
     }) => Promise<string>;
-    getDownloadTasks: () => Promise<any[]>;
+    getDownloadTasks: () => Promise<unknown[]>;
     pauseDownload: (taskId: string) => Promise<void>;
     resumeDownload: (taskId: string) => Promise<void>;
     cancelDownload: (taskId: string) => Promise<void>;
     retryDownload: (taskId: string) => Promise<void>;
-    scanLocalDownloads: (basePath: string) => Promise<any[]>;
+    scanLocalDownloads: (basePath: string) => Promise<unknown[]>;
   };
-  on: (channel: string, callback: (...args: any[]) => void) => () => void;
+  on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   dialog: {
     selectDirectory: () => Promise<string | null>;
   };
 }
 
 // Helper to log IPC calls in renderer
-const logIpc = async (channel: string, ...args: any[]) => {
+const logIpc = async (channel: string, ...args: unknown[]) => {
   console.debug(`[Renderer:IPC:Request] ${channel}`, ...args);
   try {
     const result = await ipcRenderer.invoke(channel, ...args);
@@ -64,7 +64,7 @@ const electronAPI: ElectronAPI = {
     searchSeries: (query: string) => logIpc('scraper:searchSeries', query),
     getSeriesDetails: (seriesUrl: string) => logIpc('scraper:getSeriesDetails', seriesUrl),
     getChapterPages: (chapterUrl: string, seriesId?: string) => logIpc('scraper:getChapterPages', chapterUrl, seriesId),
-    downloadChapter: (params: any) => logIpc('scraper:downloadChapter', params),
+    downloadChapter: (params: unknown) => logIpc('scraper:downloadChapter', params),
     getDownloadTasks: () => logIpc('scraper:getDownloadTasks'),
     pauseDownload: (taskId: string) => logIpc('scraper:pauseDownload', taskId),
     resumeDownload: (taskId: string) => logIpc('scraper:resumeDownload', taskId),
@@ -72,8 +72,8 @@ const electronAPI: ElectronAPI = {
     retryDownload: (taskId: string) => logIpc('scraper:retryDownload', taskId),
     scanLocalDownloads: (basePath: string) => logIpc('scraper:scanLocalDownloads', basePath),
   },
-  on: (channel: string, callback: (...args: any[]) => void) => {
-    const subscription = (_event: any, ...args: any[]) => {
+  on: (channel: string, callback: (...args: unknown[]) => void) => {
+    const subscription = (_event: IpcRendererEvent, ...args: unknown[]) => {
       console.debug(`[Renderer:IPC:Event] ${channel}`, ...args);
       callback(...args);
     };

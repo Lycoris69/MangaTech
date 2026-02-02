@@ -505,7 +505,7 @@ export class ManhwazScraper extends BaseScraper {
   }
 
   // Helper method for making HTTP requests with Cheerio parsing
-  protected async makeHttpRequest(url: string): Promise<any> {
+  protected async makeHttpRequest(url: string): Promise<cheerio.CheerioAPI> {
     const response = await this.axiosInstance.get(url)
     return cheerio.load(response.data)
   }

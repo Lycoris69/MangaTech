@@ -1,10 +1,10 @@
-import { 
-  AppError, 
-  ErrorType, 
-  ErrorSeverity, 
-  NetworkError, 
-  FileSystemError, 
-  ScrapingError, 
+import {
+  AppError,
+  ErrorType,
+  ErrorSeverity,
+  NetworkError,
+  FileSystemError,
+  ScrapingError,
   StorageError,
   ErrorRecoveryStrategy,
   ErrorReporter
@@ -37,7 +37,7 @@ export class ErrorService {
     options: {
       severity?: ErrorSeverity
       details?: string
-      context?: Record<string, any>
+      context?: Record<string, unknown>
       retryable?: boolean
       userMessage?: string
       originalError?: Error
@@ -198,14 +198,14 @@ export class ErrorService {
    */
   async handleError(error: AppError): Promise<boolean> {
     const strategy = this.recoveryStrategies.get(error.type)
-    
+
     if (strategy && strategy.canRecover(error)) {
       try {
         await strategy.recover(error)
         return true
       } catch (recoveryError) {
         console.error('Error recovery failed:', recoveryError)
-        
+
         if (strategy.fallback) {
           try {
             await strategy.fallback()
@@ -277,7 +277,7 @@ export class ErrorService {
 
   private addToHistory(error: AppError): void {
     this.errorHistory.unshift(error)
-    
+
     if (this.errorHistory.length > this.maxHistorySize) {
       this.errorHistory = this.errorHistory.slice(0, this.maxHistorySize)
     }

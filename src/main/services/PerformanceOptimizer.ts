@@ -63,16 +63,11 @@ interface QueuedRequest {
   url: string
   config: AxiosRequestConfig
   resolve: (value: AxiosResponse) => void
-  reject: (error: any) => void
+  reject: (error: unknown) => void
   timestamp: number
   priority: number
 }
 
-// Request batch
-interface RequestBatch {
-  requests: QueuedRequest[]
-  timestamp: number
-}
 
 // Deduplication cache entry
 interface DeduplicationEntry {
@@ -192,7 +187,7 @@ export class PerformanceOptimizer {
     }
 
     return new Promise<AxiosResponse>((resolve, reject) => {
-      const priority = (config as any).priority || 0
+      const priority = (config as { priority?: number }).priority || 0
       const queuedRequest: QueuedRequest = {
         id: requestId,
         url,
@@ -337,7 +332,7 @@ export class PerformanceOptimizer {
     instance.interceptors.response.use(
       (response) => {
         // Update response time metrics
-        const responseTime = Date.now() - (response.config as any).startTime
+        const responseTime = Date.now() - (response.config as { startTime?: number }).startTime!
         this.updateResponseTimeMetrics(responseTime)
         return response
       },
@@ -493,7 +488,7 @@ export class PerformanceOptimizer {
   private updatePerformanceMetrics(): void {
     // Update requests per second (based on last second)
     const now = Date.now()
-    const oneSecondAgo = now - 1000
+    // const oneSecondAgo = now - 1000
 
     // This is a simplified calculation - in a real implementation,
     // you'd track requests with timestamps
@@ -553,7 +548,7 @@ export class PerformanceOptimizer {
   /**
    * Build search index for series (for testing purposes)
    */
-  buildSearchIndex(series: any[]): void {
+  buildSearchIndex(series: unknown[]): void {
     // Simple implementation for testing
     PerformanceOptimizer.logger.debug('Building search index', { seriesCount: series.length })
   }
@@ -561,7 +556,7 @@ export class PerformanceOptimizer {
   /**
    * Search series by query (for testing purposes)
    */
-  searchSeries(query: string, series: any[]): any[] {
+  searchSeries(query: string, series: Record<string, string>[]): Record<string, string>[] {
     // Simple implementation for testing
     return series.filter(s =>
       s.title?.toLowerCase().includes(query.toLowerCase()) ||
@@ -572,7 +567,7 @@ export class PerformanceOptimizer {
   /**
    * Sort series by field (for testing purposes)
    */
-  sortSeries(series: any[], field: string): any[] {
+  sortSeries(series: Record<string, string>[], field: string): Record<string, string>[] {
     // Simple implementation for testing
     return [...series].sort((a, b) => {
       const aVal = a[field] || ''
@@ -584,7 +579,7 @@ export class PerformanceOptimizer {
   /**
    * Paginate results (for testing purposes)
    */
-  paginateResults(series: any[], page: number, pageSize: number): { items: any[], total: number, page: number, pageSize: number } {
+  paginateResults(series: unknown[], page: number, pageSize: number): { items: unknown[], total: number, page: number, pageSize: number } {
     const startIndex = (page - 1) * pageSize
     const endIndex = startIndex + pageSize
     return {
@@ -598,7 +593,7 @@ export class PerformanceOptimizer {
   /**
    * Cache series data (for testing purposes)
    */
-  cacheSeries(series: any[]): void {
+  cacheSeries(series: unknown[]): void {
     // Simple implementation for testing
     PerformanceOptimizer.logger.debug('Caching series data', { seriesCount: series.length })
     // Update memory usage to reflect cached data

@@ -12,7 +12,7 @@ export interface OperationMetrics {
   responseSize?: number
   retryCount?: number
   errorMessage?: string
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 }
 
 export interface PerformanceMetrics {
@@ -72,7 +72,7 @@ export class OperationLogger {
    */
   startOperation(
     operationName: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ): string {
     const operationId = this.generateOperationId()
     const startTime = new Date()
@@ -125,7 +125,7 @@ export class OperationLogger {
     operation.endTime = endTime
     operation.duration = duration
     operation.success = success
-    
+
     if (additionalData) {
       operation.url = additionalData.url
       operation.statusCode = additionalData.statusCode
@@ -246,7 +246,7 @@ export class OperationLogger {
     const totalDuration = this.completedOperations
       .filter(op => op.duration !== undefined)
       .reduce((sum, op) => sum + (op.duration || 0), 0)
-    
+
     const averageResponseTime = total > 0 ? totalDuration / total : 0
 
     const operationsByType: Record<string, number> = {}
@@ -277,7 +277,7 @@ export class OperationLogger {
    */
   private updatePerformanceMetrics(operation: OperationMetrics): void {
     const existing = this.performanceMetrics.get(operation.operationName)
-    
+
     if (!existing) {
       // Create new metrics
       this.performanceMetrics.set(operation.operationName, {
@@ -296,10 +296,10 @@ export class OperationLogger {
       const totalRequests = existing.totalRequests + 1
       const successfulRequests = existing.successfulRequests + (operation.success ? 1 : 0)
       const failedRequests = existing.failedRequests + (operation.success ? 0 : 1)
-      
+
       const duration = operation.duration || 0
       const totalDuration = (existing.averageResponseTime * existing.totalRequests) + duration
-      
+
       this.performanceMetrics.set(operation.operationName, {
         operation: operation.operationName,
         totalRequests,

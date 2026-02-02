@@ -6,7 +6,7 @@
  * Validates network issues and rate limiting behavior
  */
 
-import { ManhwazScraper } from './ManhwazScraper'
+import { ManhwazScraper } from './scraper/ManhwazScraper'
 import { ValidationError } from './WebScrapingService'
 
 // Mock axios for network simulation

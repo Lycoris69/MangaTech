@@ -1,6 +1,5 @@
-import { BaseScraper, ScrapingError, ValidationError, RateLimitConfig as BaseRateLimitConfig } from './WebScrapingService'
-import { Series, SeriesSearchResult, TrendingContent, PageUrl, PageData, Chapter, LatestRelease, SeriesDetails, HotScan } from '../types'
-import { Page } from 'puppeteer'
+import { BaseScraper, ScrapingError, ValidationError, RateLimitConfig as BaseRateLimitConfig } from '../WebScrapingService'
+import { Series, SeriesSearchResult, TrendingContent, PageUrl, PageData, Chapter, LatestRelease, SeriesDetails, HotScan } from '../../types'
 import * as cheerio from 'cheerio'
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 import winston from 'winston'
@@ -22,6 +21,8 @@ import { PerformanceOptimizer } from './PerformanceOptimizer'
 interface ManhwazRateLimitConfig extends BaseRateLimitConfig, RetryConfig, TokenBucketConfig {
   requestsPerSecond: number
   burstLimit: number
+  retryAttempts: number
+  retryDelay: number
 }
 
 /**
@@ -176,7 +177,7 @@ export class ManhwazScraper extends BaseScraper {
   /**
    * Initialize the scraper and its services
    */
-  private async initialize(): Promise<void> {
+  protected async initialize(): Promise<void> {
     try {
       await this.cacheService.initialize()
       ManhwazScraper.logger.info('ManhwazScraper initialized successfully')
@@ -391,6 +392,7 @@ export class ManhwazScraper extends BaseScraper {
           { url: this.urlManager.buildHomepageUrl(), config: { priority: 1 } },
           { url: this.urlManager.buildHomepageUrl(), config: { priority: 1 } }
         ]
+        console.log('Requests:', requests)
 
         const [hotScansResult, latestReleasesResult] = await Promise.all([
           cachedHotScans || this.hotScansExtractor.extractHotScans(),
@@ -509,7 +511,7 @@ export class ManhwazScraper extends BaseScraper {
   }
 
   // Helper method for making HTTP requests with Cheerio parsing
-  protected async makeHttpRequest(url: string): Promise<any> {
+  protected async makeHttpRequest(url: string): Promise<cheerio.CheerioAPI> {
     const response = await this.axiosInstance.get(url)
     return cheerio.load(response.data)
   }

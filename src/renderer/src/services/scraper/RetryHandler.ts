@@ -38,16 +38,16 @@ export const defaultRetryPredicate: RetryPredicate = (error: Error, context: Ret
   }
 
   // Retry on network errors
-  if (error.message.includes('ECONNRESET') || 
-      error.message.includes('ETIMEDOUT') || 
-      error.message.includes('ENOTFOUND')) {
+  if (error.message.includes('ECONNRESET') ||
+    error.message.includes('ETIMEDOUT') ||
+    error.message.includes('ENOTFOUND')) {
     return true
   }
 
   // Retry on 5xx server errors and 429 rate limiting
   if ('status' in error) {
-    const status = (error as any).status
-    return status >= 500 || status === 429
+    const status = (error as { status?: number }).status
+    return status !== undefined && (status >= 500 || status === 429)
   }
 
   return false
@@ -63,7 +63,7 @@ export class RetryHandler {
   constructor(config: RetryConfig, logger?: winston.Logger) {
     this.validateConfig(config)
     this.config = config
-    
+
     this.logger = logger || winston.createLogger({
       level: 'info',
       format: winston.format.combine(
@@ -93,7 +93,7 @@ export class RetryHandler {
     retryPredicate: RetryPredicate = defaultRetryPredicate
   ): Promise<T> {
     let lastError: Error | null = null
-    
+
     for (let attempt = 1; attempt <= this.config.maxAttempts; attempt++) {
       const context: RetryContext = {
         operation: operationName,
@@ -157,7 +157,7 @@ export class RetryHandler {
     const finalError = new Error(
       `Operation '${operationName}' failed after ${this.config.maxAttempts} attempts. Last error: ${lastError?.message}`
     )
-    
+
     // Preserve original error stack if available
     if (lastError?.stack) {
       finalError.stack = lastError.stack
@@ -180,14 +180,14 @@ export class RetryHandler {
   private calculateDelay(attempt: number): number {
     // Calculate exponential backoff: baseDelay * (backoffMultiplier ^ (attempt - 1))
     let delay = this.config.baseDelay * Math.pow(this.config.backoffMultiplier, attempt - 1)
-    
+
     // Apply jitter if enabled (±25% random variation)
     if (this.config.jitterEnabled) {
       const jitterRange = delay * 0.25
       const jitter = (Math.random() - 0.5) * 2 * jitterRange
       delay += jitter
     }
-    
+
     // Cap at maximum delay
     return Math.min(delay, this.config.maxDelay)
   }

@@ -11,13 +11,14 @@ describe('ReadingStateService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     readingStateService = new ReadingStateService()
-    mockLibraryService = (readingStateService as any).libraryService
+    mockLibraryService = (readingStateService as unknown as { libraryService: jest.Mocked<LibraryService> }).libraryService
   })
 
   afterEach(() => {
     // Clean up any running intervals
-    if ((readingStateService as any).autoSaveInterval) {
-      clearInterval((readingStateService as any).autoSaveInterval)
+    const service = readingStateService as unknown as { autoSaveInterval: NodeJS.Timeout | null }
+    if (service.autoSaveInterval) {
+      clearInterval(service.autoSaveInterval)
     }
   })
 
@@ -65,9 +66,9 @@ describe('ReadingStateService', () => {
   describe('updateReadingState', () => {
     it('should update reading state properties', async () => {
       mockLibraryService.getReadingProgress.mockResolvedValue([])
-      
+
       await readingStateService.startReadingSession('series-1', 'chapter-1')
-      
+
       readingStateService.updateReadingState({
         pageNumber: 5,
         zoomLevel: 1.5
@@ -80,7 +81,7 @@ describe('ReadingStateService', () => {
 
     it('should not update if no active session', () => {
       readingStateService.updateReadingState({ pageNumber: 5 })
-      
+
       const currentState = readingStateService.getCurrentState()
       expect(currentState).toBeNull()
     })
@@ -93,7 +94,7 @@ describe('ReadingStateService', () => {
 
       await readingStateService.startReadingSession('series-1', 'chapter-1')
       readingStateService.updateReadingState({ pageNumber: 3 })
-      
+
       await readingStateService.saveReadingState()
 
       expect(mockLibraryService.markAsRead).toHaveBeenCalledWith('series-1', 'chapter-1', 3)
@@ -101,7 +102,7 @@ describe('ReadingStateService', () => {
 
     it('should not save if no active session', async () => {
       await readingStateService.saveReadingState()
-      
+
       expect(mockLibraryService.markAsRead).not.toHaveBeenCalled()
     })
   })

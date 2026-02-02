@@ -220,7 +220,7 @@ export class ScraperManager {
   private parseSeriesId(seriesId: string): [string, string] {
     // If it's a full URL, try to match it with a source base URL
     if (seriesId.startsWith('http')) {
-      for (const [sourceName, scraper] of this.scrapers) {
+      for (const [sourceName, _scraper] of this.scrapers) {
         const source = this.sources.find(s => s.name === sourceName)
         if (source && (seriesId.startsWith(source.baseUrl) || seriesId.includes(source.baseUrl.replace('https://', '')))) {
           return [sourceName, seriesId]
@@ -282,11 +282,10 @@ export class ScraperManager {
     }
   }
 
-  // Remove a source
   public removeSource(sourceName: string): void {
     const scraper = this.scrapers.get(sourceName)
     if (scraper && 'cleanup' in scraper && typeof scraper.cleanup === 'function') {
-      (scraper as any).cleanup().catch((error: unknown) => {
+      (scraper as { cleanup: () => Promise<void> }).cleanup().catch((error: unknown) => {
         console.error(`Failed to cleanup scraper for ${sourceName}:`, error)
       })
     }
@@ -302,7 +301,7 @@ export class ScraperManager {
     for (const [sourceName, scraper] of this.scrapers) {
       if ('cleanup' in scraper && typeof scraper.cleanup === 'function') {
         cleanupPromises.push(
-          (scraper as any).cleanup().catch((error: unknown) => {
+          (scraper as { cleanup: () => Promise<void> }).cleanup().catch((error: unknown) => {
             console.error(`Failed to cleanup scraper for ${sourceName}:`, error)
           })
         )

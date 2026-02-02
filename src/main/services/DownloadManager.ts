@@ -261,13 +261,14 @@ export class DownloadManager {
 
             DownloadManager.logger.info('Download completed successfully', { chapterPath })
             return { chapterPath, seriesPath: mangaDir }
-        } catch (err: any) {
-            if (err.message === 'PAUSED') return { chapterPath: '', seriesPath: '' };
-            if (err.message === 'CANCELLED') return { chapterPath: '', seriesPath: '' };
+        } catch (err: unknown) {
+            const error = err as Error;
+            if (error.message === 'PAUSED') return { chapterPath: '', seriesPath: '' };
+            if (error.message === 'CANCELLED') return { chapterPath: '', seriesPath: '' };
 
             DownloadManager.logger.error('Download process failed', {
-                error: err.message,
-                stack: err.stack,
+                error: error.message,
+                stack: error.stack,
                 seriesTitle,
                 chapterTitle
             })
@@ -394,9 +395,10 @@ export class DownloadManager {
                     writer.on('finish', resolve)
                     writer.on('error', reject)
                 })
-            } catch (err: any) {
+            } catch (err: unknown) {
+                const error = err as any; // Still using any here for axios error status access, or I can use axios.isAxiosError
                 const isLastAttempt = i === attempts - 1;
-                const status = err.response?.status;
+                const status = (error as { response?: { status: number } }).response?.status;
 
                 if (isLastAttempt) throw err;
 

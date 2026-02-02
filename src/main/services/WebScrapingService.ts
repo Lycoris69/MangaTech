@@ -22,7 +22,7 @@ const DEFAULT_RATE_LIMIT: RateLimitConfig = {
 // Request queue item
 interface QueuedRequest {
   url: string
-  resolve: (value: any) => void
+  resolve: (value: unknown) => void
   reject: (error: Error) => void
   timestamp: number
   attempts: number
@@ -33,7 +33,7 @@ export interface WebScrapingService {
   searchSeries(query: string): Promise<SeriesSearchResult[]>
   getSeriesDetails(seriesId: string): Promise<Series>
   getTrendingContent(): Promise<TrendingContent>
-  getLatestReleases(page?: number): Promise<any[]>
+  getLatestReleases(page?: number): Promise<SeriesSearchResult[]>
   getChapterPages(chapterId: string): Promise<PageUrl[]>
   validateSource(sourceUrl: string): Promise<boolean>
   invalidateCache(type: 'series' | 'chapter' | 'search', id?: string): Promise<void>
@@ -115,18 +115,18 @@ export abstract class BaseScraper implements WebScrapingService {
   }
 
   // Rate-limited request method
-  protected async makeRequest<T>(url: string, requestHandler: (page: Page) => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
+  protected async makeRequest<T = unknown>(url: string, requestHandler: (page: Page) => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
       const queuedRequest: QueuedRequest = {
         url,
-        resolve: async (page: Page) => {
+        resolve: (async (page: Page) => {
           try {
             const result = await requestHandler(page)
-            resolve(result)
+            resolve(result as any) // Need any here for promise resolution, or type it correctly
           } catch (error) {
-            reject(error)
+            reject(error as Error)
           }
-        },
+        }) as (value: unknown) => void,
         reject,
         timestamp: Date.now(),
         attempts: 0
@@ -232,7 +232,7 @@ export abstract class BaseScraper implements WebScrapingService {
   abstract searchSeries(query: string): Promise<SeriesSearchResult[]>
   abstract getSeriesDetails(seriesId: string): Promise<Series>
   abstract getTrendingContent(): Promise<TrendingContent>
-  abstract getLatestReleases(page?: number): Promise<any[]>
+  abstract getLatestReleases(page?: number): Promise<SeriesSearchResult[]>
   abstract getChapterPages(chapterId: string): Promise<PageUrl[]>
   abstract invalidateCache(type: 'series' | 'chapter' | 'search', id?: string): Promise<void>
 }

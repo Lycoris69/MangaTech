@@ -178,7 +178,7 @@ export class ScrapingMonitor {
     concurrency: number = 3
   ): Promise<MonitoringResult<T>[]> {
     const results: MonitoringResult<T>[] = []
-    
+
     // Process operations in batches to respect concurrency limit
     for (let i = 0; i < operations.length; i += concurrency) {
       const batch = operations.slice(i, i + concurrency)
@@ -195,11 +195,11 @@ export class ScrapingMonitor {
    */
   getMonitoringStats(): {
     errorStats: Record<string, number>
-    performanceMetrics: any[]
-    systemHealth: any
+    performanceMetrics: unknown[]
+    systemHealth: Record<string, unknown>
   } {
     const report = this.metricsCollector.generateMetricsReport()
-    
+
     return {
       errorStats: this.errorHandler.getErrorStatistics(),
       performanceMetrics: report.performanceMetrics,
@@ -221,8 +221,13 @@ export class ScrapingMonitor {
     }
   } {
     const report = this.metricsCollector.generateMetricsReport()
-    const health = report.systemHealth
-    
+    const health = report.systemHealth as {
+      overallSuccessRate: number
+      averageResponseTime: number
+      errorRate: number
+      activeOperations: number
+    }
+
     const issues: string[] = []
     let healthy = true
 
@@ -267,9 +272,9 @@ export class ScrapingMonitor {
    */
   generateReport(): {
     timestamp: string
-    systemHealth: any
-    recentErrors: any[]
-    performanceMetrics: any[]
+    systemHealth: Record<string, unknown>
+    recentErrors: unknown[]
+    performanceMetrics: unknown[]
     recommendations: string[]
   } {
     const report = this.metricsCollector.generateMetricsReport()
