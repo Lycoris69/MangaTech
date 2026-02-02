@@ -1,9 +1,8 @@
 import path from 'path'
 import { BaseScraper, ScrapingError, ValidationError, RateLimitConfig as BaseRateLimitConfig } from './WebScrapingService'
-import { Series, SeriesSearchResult, TrendingContent, PageUrl, PageData, Chapter, LatestRelease, SeriesDetails, HotScan } from '../types'
-import { Page } from 'puppeteer'
+import { Series, SeriesSearchResult, TrendingContent, PageData, LatestRelease, HotScan } from '../types'
 import * as cheerio from 'cheerio'
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
+import axios, { AxiosInstance } from 'axios'
 import winston from 'winston'
 import { URLManager } from './URLManager'
 import { RateLimiter, RateLimitConfig as TokenBucketConfig } from './RateLimiter'
@@ -388,10 +387,6 @@ export class ManhwazScraper extends BaseScraper {
         latestReleases = cachedLatestReleases
       } else {
         // Get hot scans and latest releases concurrently with performance optimization
-        const requests = [
-          { url: this.urlManager.buildHomepageUrl(), config: { priority: 1 } },
-          { url: this.urlManager.buildHomepageUrl(), config: { priority: 1 } }
-        ]
 
         const [hotScansResult, latestReleasesResult] = await Promise.all([
           cachedHotScans || this.hotScansExtractor.extractHotScans(),

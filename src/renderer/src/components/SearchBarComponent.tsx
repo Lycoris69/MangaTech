@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ManhwazScraper } from '../services/ManhwazScraper';
+import { ManhwazScraper } from '../services/scraper/ManhwazScraper';
 import { AutocompleteResult } from '../services/SearchInterface';
 import { useNotifications } from './NotificationSystem';
 import './SearchBarComponent.css';
@@ -37,7 +37,7 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
   const scraper = useRef(new ManhwazScraper());
-  
+
   const { error: showError } = useNotifications();
 
   // Load recent searches from localStorage
@@ -71,14 +71,14 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       const results = await scraper.current.getAutocompleteSuggestions(searchQuery.trim());
       setSuggestions(results.slice(0, maxSuggestions));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch suggestions';
       setError(errorMessage);
       setSuggestions([]);
-      
+
       // Only show error notification for non-trivial errors
       if (searchQuery.trim().length >= 3) {
         showError('Search Error', errorMessage);
@@ -112,7 +112,7 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedQuery = query.trim();
-    
+
     if (!trimmedQuery) {
       showError('Search Required', 'Please enter a search term.');
       return;
@@ -129,7 +129,7 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
         trimmedQuery,
         ...recentSearches.filter(s => s !== trimmedQuery)
       ].slice(0, 10); // Keep only 10 recent searches
-      
+
       setRecentSearches(updatedRecent);
       localStorage.setItem('manhwaz-recent-searches', JSON.stringify(updatedRecent));
     }
@@ -145,7 +145,7 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
   const handleSuggestionClick = (suggestion: AutocompleteResult) => {
     setQuery(suggestion.suggestion);
     setShowSuggestions(false);
-    
+
     if (onSuggestionClick) {
       onSuggestionClick(suggestion);
     } else if (onSearch) {
@@ -157,7 +157,7 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
   const handleRecentSearchClick = (recentQuery: string) => {
     setQuery(recentQuery);
     setShowSuggestions(false);
-    
+
     if (onSearch) {
       onSearch(recentQuery);
     }
@@ -174,12 +174,12 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
         e.preventDefault();
         setSelectedIndex(prev => (prev + 1) % totalItems);
         break;
-      
+
       case 'ArrowUp':
         e.preventDefault();
         setSelectedIndex(prev => prev <= 0 ? totalItems - 1 : prev - 1);
         break;
-      
+
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0) {
@@ -193,7 +193,7 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
           handleSubmit(e);
         }
         break;
-      
+
       case 'Escape':
         setShowSuggestions(false);
         setSelectedIndex(-1);
@@ -248,9 +248,9 @@ export const SearchBarComponent: React.FC<SearchBarComponentProps> = ({
             autoComplete="off"
             spellCheck="false"
           />
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             className="search-button"
             disabled={!query.trim() || loading}
             title="Search"

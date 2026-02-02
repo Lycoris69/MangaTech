@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio'
 import axios, { AxiosInstance } from 'axios'
 import winston from 'winston'
-import { PageData } from '../types'
+import { PageData } from '../../types'
 import { URLManager } from './URLManager'
 import { RateLimiter } from './RateLimiter'
 import { ContentValidator } from './ContentValidator'
-import { ScrapingError, ValidationError } from './WebScrapingService'
+import { ScrapingError, ValidationError } from '../WebScrapingService'
 
 /**
  * ChapterExtractor - Extracts page URLs from manhwaz.com chapter pages
@@ -348,7 +348,7 @@ export class ChapterExtractor {
   private async getImageDimensions(imageUrl: string): Promise<{ width?: number; height?: number }> {
     try {
       // Make a partial request to get image headers
-      const response = await this.axiosInstance.get(imageUrl, {
+      await this.axiosInstance.get(imageUrl, {
         responseType: 'stream',
         timeout: 5000,
         headers: {

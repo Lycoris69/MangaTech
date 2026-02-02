@@ -8,11 +8,11 @@
  */
 
 import * as cheerio from 'cheerio'
-import { SeriesSearchResult } from '../types'
+import { SeriesSearchResult } from '../../types'
 import { URLManager } from './URLManager'
 import { RateLimiter } from './RateLimiter'
 import { ContentValidator } from './ContentValidator'
-import { ScrapingError, ValidationError } from './WebScrapingService'
+import { ScrapingError, ValidationError } from '../WebScrapingService'
 import axios, { AxiosInstance } from 'axios'
 import winston from 'winston'
 
@@ -240,7 +240,7 @@ export class SearchInterface {
       return results
     }
 
-    $results.each((index: number, element: any) => {
+    $results.each((_index: number, element: any) => {
       try {
         const $item = $(element)
 
@@ -255,14 +255,14 @@ export class SearchInterface {
         }
 
         if (!title) {
-          SearchInterface.logger.debug('Skipping result with no title', { index })
+          SearchInterface.logger.debug('Skipping result with no title', { index: _index })
           return
         }
 
         // Extract series URL
         const seriesUrl = this.urlManager.resolveUrl(titleElement.attr('href') || '')
         if (!seriesUrl || !this.urlManager.validateUrl(seriesUrl)) {
-          SearchInterface.logger.debug('Skipping result with invalid URL', { index, title, url: seriesUrl })
+          SearchInterface.logger.debug('Skipping result with invalid URL', { index: _index, title, url: seriesUrl })
           return
         }
 
@@ -325,7 +325,7 @@ export class SearchInterface {
         // Generate unique ID from URL
         const id = this.urlManager.extractSeriesId(seriesUrl) ||
           seriesUrl.split('/').pop() ||
-          `search-${Date.now()}-${index}`
+          `search-${Date.now()}-${_index}`
 
         // Extract latest chapter
         const chapterElement = $item.find('.chapter, .chapter-item, .latest-chapter, span.chapter').first()
@@ -397,7 +397,7 @@ export class SearchInterface {
 
       } catch (error) {
         SearchInterface.logger.warn('Failed to parse search result item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
@@ -530,7 +530,7 @@ export class SearchInterface {
       if (genres && genres.length > 0) {
         filteredResults = filteredResults.filter(result =>
           genres.some(genre =>
-            result.genres.some(resultGenre =>
+            result.genres.some((resultGenre: string) =>
               resultGenre.toLowerCase().includes(genre.toLowerCase())
             )
           )

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Series, Chapter, UserLibrary, DownloadTask } from '../types';
 import { StorageService } from '../services/StorageService';
@@ -31,15 +31,54 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
   const [completedBatchChapters, setCompletedBatchChapters] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const storageService = new StorageService();
-  const libraryService = new LibraryService();
+  const storageService = useMemo(() => new StorageService(), []);
+  const libraryService = useMemo(() => new LibraryService(), []);
+
+  const loadUserLibrary = useCallback(async () => {
+    try {
+      await storageService.initialize();
+      const library = await storageService.loadUserLibrary();
+      setUserLibrary(library);
+    } catch (err) {
+      console.error('Failed to load user library:', err);
+    }
+  }, [storageService]);
+
+  const loadSeriesData = useCallback(async (id: string | undefined) => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Loading series details for:', id);
+
+      const decodedId = decodeURIComponent(id);
+
+      // @ts-expect-error - electronAPI exists via preload
+      const seriesDetails = await window.electronAPI.scraper.getSeriesDetails(decodedId);
+      console.log('Series details loaded:', seriesDetails);
+
+      setSeries(seriesDetails);
+
+      if (seriesDetails.chapters) {
+        setChapters(seriesDetails.chapters);
+      } else {
+        setChapters([]);
+      }
+
+    } catch (err: any) {
+      console.error('Failed to load series data:', err);
+      setError(err.message || 'Failed to load series data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (seriesId) {
       loadSeriesData(seriesId);
       loadUserLibrary();
     }
-  }, [seriesId]);
+  }, [seriesId, loadSeriesData, loadUserLibrary]);
 
   useEffect(() => {
     if (userLibrary && series) {
@@ -58,16 +97,10 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
     }
   }, [userLibrary, series]);
 
-  // Restore active downloads on mount/series load
-  useEffect(() => {
-    if (series?.id) {
-      loadActiveDownloads();
-    }
-  }, [series?.id]);
-
-  const loadActiveDownloads = async () => {
+  const loadActiveDownloads = useCallback(async () => {
     if (!series) return;
     try {
+      // @ts-expect-error - electronAPI exists via preload
       const tasks: DownloadTask[] = await window.electronAPI.scraper.getDownloadTasks();
       const seriesTasks = tasks.filter(t => t.seriesId === series.id && (t.status === 'pending' || t.status === 'downloading'));
 
@@ -99,10 +132,18 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
     } catch (err) {
       console.error('Failed to load active downloads:', err);
     }
-  };
+  }, [series]);
+
+  // Restore active downloads on mount/series load
+  useEffect(() => {
+    if (series?.id) {
+      loadActiveDownloads();
+    }
+  }, [series?.id, loadActiveDownloads]);
 
   useEffect(() => {
     // Listen for download progress updates from the main process
+    // @ts-expect-error - electronAPI exists via preload
     const unsubscribe = window.electronAPI.on('download:tasks-updated', (tasks: DownloadTask[]) => {
       if (!series) return;
 
@@ -145,42 +186,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
     return () => unsubscribe();
   }, [series, downloadingChapterId, isBatchDownloading]);
 
-  const loadSeriesData = async (id: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('Loading series details for:', id);
 
-      const decodedId = decodeURIComponent(id);
-
-      const seriesDetails = await window.electronAPI.scraper.getSeriesDetails(decodedId);
-      console.log('Series details loaded:', seriesDetails);
-
-      setSeries(seriesDetails);
-
-      if (seriesDetails.chapters) {
-        setChapters(seriesDetails.chapters);
-      } else {
-        setChapters([]);
-      }
-
-    } catch (err: any) {
-      console.error('Failed to load series data:', err);
-      setError(err.message || 'Failed to load series data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadUserLibrary = async () => {
-    try {
-      await storageService.initialize();
-      const library = await storageService.loadUserLibrary();
-      setUserLibrary(library);
-    } catch (err) {
-      console.error('Failed to load user library:', err);
-    }
-  };
 
   const handleToggleFavorite = async () => {
     if (!seriesId || !series) return;
@@ -219,9 +225,9 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
     if (downloadingChapterId || !series || !seriesId) return;
 
     try {
-      // Ensure metadata is saved so it shows up correctly in the library
       await storageService.upsertSeries(series);
 
+      // @ts-expect-error - electronAPI exists via preload
       const destPath = await window.electronAPI.dialog.selectDirectory();
       if (!destPath) return;
 
@@ -230,6 +236,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
 
       const idToDownload = chapter.chapterUrl || chapter.sourceUrl || chapter.id;
 
+      // @ts-expect-error - electronAPI exists via preload
       const result = await window.electronAPI.scraper.downloadChapter({
         seriesId: series.id,
         chapterId: idToDownload,
@@ -259,6 +266,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
       // Ensure metadata is saved
       await storageService.upsertSeries(series);
 
+      // @ts-expect-error - electronAPI exists via preload
       const destPath = await window.electronAPI.dialog.selectDirectory();
       if (!destPath) return;
 
@@ -282,6 +290,7 @@ const SeriesPage: React.FC<SeriesPageProps> = ({ onEnterReading }) => {
         const idToDownload = chapter.chapterUrl || chapter.sourceUrl || chapter.id;
 
         try {
+          // @ts-expect-error - electronAPI exists via preload
           const result = await window.electronAPI.scraper.downloadChapter({
             seriesId: series.id,
             chapterId: idToDownload,

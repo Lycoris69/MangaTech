@@ -169,7 +169,7 @@ export class HotScansExtractor {
       '.top-rated .manga-card'
     ]
 
-    let hotScanElements: cheerio.Cheerio<cheerio.Element> | null = null
+    let hotScanElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the hot scans section
     for (const selector of possibleSelectors) {
@@ -190,15 +190,15 @@ export class HotScansExtractor {
     }
 
     // Parse each hot scan item
-    hotScanElements.each((index, element) => {
+    hotScanElements.each((_index, element) => {
       try {
-        const hotScan = this.parseHotScanItem($, $(element), index)
+        const hotScan = this.parseHotScanItem($, $(element), _index)
         if (hotScan) {
           hotScans.push(hotScan)
         }
       } catch (error) {
         HotScansExtractor.logger.warn('Failed to parse hot scan item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
@@ -213,10 +213,10 @@ export class HotScansExtractor {
    * 
    * @param $ Cheerio instance
    * @param element Hot scan item element
-   * @param index Item index for ranking and ID generation
+   * @param _index Item index for ranking and ID generation
    * @returns HotScan | null Parsed hot scan or null if parsing fails
    */
-  private parseHotScanItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<cheerio.Element>, index: number): HotScan | null {
+  private parseHotScanItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, _index: number): HotScan | null {
     try {
       // Extract series title
       const titleSelectors = ['h3 a', '.title a', '.manga-title a', 'a.title', '.series-title', '.name a']
@@ -233,7 +233,7 @@ export class HotScansExtractor {
       }
 
       if (!seriesTitle) {
-        HotScansExtractor.logger.debug('Could not extract series title', { index })
+        HotScansExtractor.logger.debug('Could not extract series title', { index: _index })
         return null
       }
 
@@ -288,7 +288,7 @@ export class HotScansExtractor {
 
       // Extract rank (use index + 1 if no explicit rank found)
       const rankSelectors = ['.rank', '.position', '.number', '.ranking']
-      let rank = index + 1 // Default to position in list
+      let rank = _index + 1 // Default to position in list
 
       for (const selector of rankSelectors) {
         const rankElement = element.find(selector).first()
@@ -354,7 +354,7 @@ export class HotScansExtractor {
       }
 
       // Generate unique ID
-      const id = `manhwaz-hotscan-${Date.now()}-${index}`
+      const id = `manhwaz-hotscan-${Date.now()}-${_index}`
 
       // Ensure URLs are absolute
       seriesUrl = this.urlManager.resolveUrl(seriesUrl)
@@ -376,7 +376,7 @@ export class HotScansExtractor {
 
     } catch (error) {
       HotScansExtractor.logger.warn('Error parsing hot scan item', {
-        index,
+        index: _index,
         error: error instanceof Error ? error.message : 'Unknown error'
       })
       return null

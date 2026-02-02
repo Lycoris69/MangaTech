@@ -1,11 +1,8 @@
 import * as winston from 'winston'
-import { 
-  AppError, 
-  ErrorType, 
-  ErrorSeverity, 
-  NetworkError, 
-  ScrapingError,
-  ErrorRecoveryStrategy 
+import {
+  AppError,
+  ErrorType,
+  ErrorSeverity
 } from '../types/errors'
 import { errorService } from './ErrorService'
 
@@ -129,7 +126,7 @@ export class ErrorHandler {
           operation: context.operation,
           timestamp
         })
-        
+
         // Create structure change error
         const structureError = errorService.createScrapingError(
           'Website structure has changed, selector no longer works',
@@ -139,7 +136,7 @@ export class ErrorHandler {
             severity: ErrorSeverity.HIGH
           }
         )
-        
+
         return structureError
       }
     }
@@ -166,7 +163,7 @@ export class ErrorHandler {
    */
   async detectStructureChange(url: string, selector: string, error: Error): Promise<boolean> {
     const key = `${url}:${selector}`
-    
+
     // Check if this is a parsing-related error
     const isParsingError = this.isParsingError(error)
     if (!isParsingError) {
@@ -229,9 +226,9 @@ export class ErrorHandler {
   /**
    * Detect specific failure patterns
    */
-  private detectFailurePattern(error: Error, context: ErrorContext): FailurePattern | null {
+  private detectFailurePattern(error: Error, _context: ErrorContext): FailurePattern | null {
     const errorMessage = error.message.toLowerCase()
-    
+
     for (const pattern of this.failurePatterns) {
       if (pattern.pattern instanceof RegExp) {
         if (pattern.pattern.test(errorMessage)) {

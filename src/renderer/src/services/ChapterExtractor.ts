@@ -155,8 +155,8 @@ export class ChapterExtractor {
    * @param chapterUrl - Original chapter URL for context
    * @returns Array of objects with page URLs and alt text
    */
-  private async extractPageUrls($: cheerio.CheerioAPI, chapterUrl: string): Promise<Array<{url: string, altText?: string}>> {
-    const pageUrls: Array<{url: string, altText?: string}> = []
+  private async extractPageUrls($: cheerio.CheerioAPI, chapterUrl: string): Promise<Array<{ url: string, altText?: string }>> {
+    const pageUrls: Array<{ url: string, altText?: string }> = []
 
     // Multiple selectors to handle different manhwaz.com page layouts
     const pageSelectors = [
@@ -175,31 +175,31 @@ export class ChapterExtractor {
 
     for (const selector of pageSelectors) {
       const images = $(selector)
-      
+
       if (images.length > 0) {
-        ChapterExtractor.logger.debug('Found images with selector', { 
-          selector, 
+        ChapterExtractor.logger.debug('Found images with selector', {
+          selector,
           count: images.length,
           url: chapterUrl
         })
 
         images.each((index, element) => {
           const $img = $(element)
-          
+
           // Try multiple attributes for image URL
-          let imageUrl = $img.attr('src') || 
-                        $img.attr('data-src') || 
-                        $img.attr('data-original') ||
-                        $img.attr('data-lazy-src') ||
-                        ''
+          let imageUrl = $img.attr('src') ||
+            $img.attr('data-src') ||
+            $img.attr('data-original') ||
+            $img.attr('data-lazy-src') ||
+            ''
 
           if (imageUrl) {
             // Resolve relative URLs to absolute URLs
             imageUrl = this.urlManager.resolveUrl(imageUrl)
-            
+
             // Extract alt text
             const altText = $img.attr('alt') || $img.attr('title') || undefined
-            
+
             // Only add if it's a valid image URL and not already added
             if (this.isValidImageUrl(imageUrl) && !pageUrls.some(p => p.url === imageUrl)) {
               pageUrls.push({ url: imageUrl, altText })
@@ -221,7 +221,7 @@ export class ChapterExtractor {
     // Sort pages by their order in the DOM to maintain reading order
     const sortedUrls = this.sortPagesByOrder($, pageUrls)
 
-    ChapterExtractor.logger.debug('Extracted page URLs', { 
+    ChapterExtractor.logger.debug('Extracted page URLs', {
       url: chapterUrl,
       count: sortedUrls.length,
       urls: sortedUrls.slice(0, 3).map(p => p.url) // Log first 3 URLs for debugging
@@ -236,17 +236,17 @@ export class ChapterExtractor {
    * @param pageUrls - Array of page URL objects to sort
    * @returns Sorted array of page URL objects
    */
-  private sortPagesByOrder($: cheerio.CheerioAPI, pageUrls: Array<{url: string, altText?: string}>): Array<{url: string, altText?: string}> {
+  private sortPagesByOrder($: cheerio.CheerioAPI, pageUrls: Array<{ url: string, altText?: string }>): Array<{ url: string, altText?: string }> {
     const urlToIndex = new Map<string, number>()
 
     // Find the DOM index for each URL
     $('img').each((index, element) => {
       const $img = $(element)
-      const imageUrl = $img.attr('src') || 
-                      $img.attr('data-src') || 
-                      $img.attr('data-original') ||
-                      $img.attr('data-lazy-src') ||
-                      ''
+      const imageUrl = $img.attr('src') ||
+        $img.attr('data-src') ||
+        $img.attr('data-original') ||
+        $img.attr('data-lazy-src') ||
+        ''
 
       if (imageUrl) {
         const resolvedUrl = this.urlManager.resolveUrl(imageUrl)
@@ -269,7 +269,7 @@ export class ChapterExtractor {
    * @param pageUrls - Array of page URL objects with alt text
    * @returns Array of validated PageData objects
    */
-  private async validateAndProcessPages(pageUrls: Array<{url: string, altText?: string}>): Promise<PageData[]> {
+  private async validateAndProcessPages(pageUrls: Array<{ url: string, altText?: string }>): Promise<PageData[]> {
     const validatedPages: PageData[] = []
 
     for (let i = 0; i < pageUrls.length; i++) {
@@ -291,7 +291,7 @@ export class ChapterExtractor {
 
           validatedPages.push(pageData)
         } else {
-          ChapterExtractor.logger.warn('Invalid or inaccessible page image', { 
+          ChapterExtractor.logger.warn('Invalid or inaccessible page image', {
             url: imageUrl,
             pageNumber: i + 1
           })
@@ -320,17 +320,17 @@ export class ChapterExtractor {
 
     try {
       const parsedUrl = new URL(url)
-      
+
       // Check for common image file extensions
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
       const pathname = parsedUrl.pathname.toLowerCase()
-      
+
       // Check if URL has image extension or contains image-related keywords
       const hasImageExtension = imageExtensions.some(ext => pathname.endsWith(ext))
-      const hasImageKeywords = pathname.includes('image') || 
-                              pathname.includes('img') || 
-                              pathname.includes('page') ||
-                              pathname.includes('chapter')
+      const hasImageKeywords = pathname.includes('image') ||
+        pathname.includes('img') ||
+        pathname.includes('page') ||
+        pathname.includes('chapter')
 
       return hasImageExtension || hasImageKeywords
     } catch {
@@ -352,8 +352,8 @@ export class ChapterExtractor {
 
       // Check if response indicates valid image content
       const contentType = response.headers['content-type'] || ''
-      const isValidImageType = contentType.startsWith('image/') || 
-                              response.status === 200
+      const isValidImageType = contentType.startsWith('image/') ||
+        response.status === 200
 
       return isValidImageType
     } catch (error) {
@@ -373,7 +373,7 @@ export class ChapterExtractor {
   private async getImageDimensions(imageUrl: string): Promise<{ width?: number; height?: number }> {
     try {
       // Make a partial request to get image headers
-      const response = await this.axiosInstance.get(imageUrl, {
+      await this.axiosInstance.get(imageUrl, {
         responseType: 'stream',
         timeout: 5000,
         headers: {

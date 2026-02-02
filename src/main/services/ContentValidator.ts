@@ -170,7 +170,7 @@ export class ContentValidator {
    * @returns Validation result with details for each item
    */
   validateLatestReleases(data: any[], options?: ValidationOptions): ValidationResult {
-    return this.validateArray(data, (item, index) => 
+    return this.validateArray(data, (item) =>
       this.validateLatestRelease(item, options), 'LatestReleases')
   }
 
@@ -181,7 +181,7 @@ export class ContentValidator {
    * @returns Validation result with details for each item
    */
   validateHotScans(data: any[], options?: ValidationOptions): ValidationResult {
-    return this.validateArray(data, (item, index) => 
+    return this.validateArray(data, (item) =>
       this.validateHotScan(item, options), 'HotScans')
   }
 
@@ -192,7 +192,7 @@ export class ContentValidator {
    * @returns Validation result with details for each item
    */
   validateSearchResults(data: any[], options?: ValidationOptions): ValidationResult {
-    return this.validateArray(data, (item, index) => 
+    return this.validateArray(data, (item) =>
       this.validateSearchResult(item, options), 'SearchResults')
   }
 
@@ -203,7 +203,7 @@ export class ContentValidator {
    * @returns Validation result with details for each item
    */
   validatePageDataArray(data: any[], options?: ValidationOptions): ValidationResult {
-    return this.validateArray(data, (item, index) => 
+    return this.validateArray(data, (item) =>
       this.validatePageData(item, options), 'PageDataArray')
   }
 
@@ -219,17 +219,17 @@ export class ContentValidator {
 
     try {
       const parsedUrl = new URL(url)
-      
+
       // Check if it's a valid image extension
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']
-      const hasImageExtension = imageExtensions.some(ext => 
+      const hasImageExtension = imageExtensions.some(ext =>
         parsedUrl.pathname.toLowerCase().endsWith(ext))
-      
+
       // Allow URLs without extensions if they're from manhwaz.com or common CDNs
       const trustedDomains = ['manhwaz.com', 'www.manhwaz.com', 'cdn.manhwaz.com']
-      const isTrustedDomain = trustedDomains.some(domain => 
+      const isTrustedDomain = trustedDomains.some(domain =>
         parsedUrl.hostname.includes(domain))
-      
+
       return hasImageExtension || isTrustedDomain
     } catch {
       return false
@@ -272,14 +272,14 @@ export class ContentValidator {
    * Generic validation using Joi schema
    */
   private validateWithSchema(
-    data: any, 
-    schema: Joi.ObjectSchema, 
-    typeName: string, 
+    data: any,
+    schema: Joi.ObjectSchema,
+    typeName: string,
     options?: ValidationOptions
   ): ValidationResult {
     const opts = { ...this.defaultOptions, ...options }
-    
-    const { error, warning, value } = schema.validate(data, {
+
+    const { error, warning } = schema.validate(data, {
       allowUnknown: opts.allowUnknown,
       stripUnknown: opts.stripUnknown,
       abortEarly: false
@@ -289,12 +289,12 @@ export class ContentValidator {
     const warnings: string[] = []
 
     if (error) {
-      errors.push(...error.details.map(detail => 
+      errors.push(...error.details.map(detail =>
         `${typeName} validation error: ${detail.message}`))
     }
 
     if (warning) {
-      warnings.push(...warning.details.map(detail => 
+      warnings.push(...warning.details.map(detail =>
         `${typeName} validation warning: ${detail.message}`))
     }
 
@@ -309,7 +309,7 @@ export class ContentValidator {
    * Validates an array of items using a validator function
    */
   private validateArray<T>(
-    data: T[], 
+    data: T[],
     validator: (item: T, index: number) => ValidationResult,
     typeName: string
   ): ValidationResult {
@@ -327,13 +327,13 @@ export class ContentValidator {
 
     data.forEach((item, index) => {
       const result = validator(item, index)
-      
+
       if (!result.isValid) {
-        errors.push(...result.errors.map(error => 
+        errors.push(...result.errors.map(error =>
           `Item ${index}: ${error}`))
       }
-      
-      warnings.push(...result.warnings.map(warning => 
+
+      warnings.push(...result.warnings.map(warning =>
         `Item ${index}: ${warning}`))
     })
 

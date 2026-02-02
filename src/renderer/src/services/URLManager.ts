@@ -124,7 +124,7 @@ export class URLManager {
 
     try {
       const parsedUrl = new URL(url)
-      const pathMatch = parsedUrl.pathname.match(/\/webtoon\/([^\/]+)/)
+      const pathMatch = parsedUrl.pathname.match(/\/webtoon\/([^/]+)/)
       return pathMatch ? pathMatch[1] : null
     } catch {
       return null
@@ -143,7 +143,7 @@ export class URLManager {
 
     try {
       const parsedUrl = new URL(url)
-      const pathMatch = parsedUrl.pathname.match(/\/chapter\/([^\/]+)/)
+      const pathMatch = parsedUrl.pathname.match(/\/chapter\/([^/]+)/)
       return pathMatch ? pathMatch[1] : null
     } catch {
       return null

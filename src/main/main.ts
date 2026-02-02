@@ -1,6 +1,5 @@
-import { app, BrowserWindow, session, dialog, protocol, net } from 'electron';
+import { app, BrowserWindow, session, dialog, protocol, net, WebContents, OnBeforeSendHeadersListenerDetails, BeforeSendResponse, OnHeadersReceivedListenerDetails, HeadersReceivedResponse } from 'electron';
 
-import * as electron from 'electron';
 
 import * as path from 'path';
 import * as fs from 'fs/promises';
@@ -16,7 +15,7 @@ app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
 
 class MangaTechApp {
-  private mainWindow: electron.BrowserWindow | null = null;
+  private mainWindow: BrowserWindow | null = null;
   private scraperManager: ScraperManager;
   private downloadManager: DownloadManager;
   private readonly dataDir: string;
@@ -47,10 +46,6 @@ class MangaTechApp {
     // Ensure data directory exists
     this.ensureDataDir();
 
-    console.log('Electron app object type:', typeof app);
-    if (!app) {
-      console.error('CRITICAL: Electron app object is undefined!');
-    }
 
     // Handle app ready event
     app.whenReady().then(() => {
@@ -79,7 +74,7 @@ class MangaTechApp {
     });
 
     // Security: Prevent new window creation
-    app.on('web-contents-created', (_: electron.Event, contents: electron.WebContents) => {
+    app.on('web-contents-created', (_, contents: WebContents) => {
       contents.setWindowOpenHandler(() => {
         return { action: 'deny' };
       });
@@ -154,7 +149,7 @@ class MangaTechApp {
     // This bypasses hotlink protection (Requirement 5.4)
     session.defaultSession.webRequest.onBeforeSendHeaders(
       { urls: ['*://*.manhwaz.com/*', '*://manhwaz.com/*'] },
-      (details: electron.OnBeforeSendHeadersListenerDetails, callback: (beforeSendResponse: electron.BeforeSendResponse) => void) => {
+      (details: OnBeforeSendHeadersListenerDetails, callback: (beforeSendResponse: BeforeSendResponse) => void) => {
         const headers = { ...details.requestHeaders };
 
         // Add Referer if not present or incorrect
@@ -178,7 +173,7 @@ class MangaTechApp {
     // For development (http://localhost:3000), we might need to allow images
     session.defaultSession.webRequest.onHeadersReceived(
       { urls: ['*://*.manhwaz.com/*'] },
-      (details: electron.OnHeadersReceivedListenerDetails, callback: (headersReceivedResponse: electron.HeadersReceivedResponse) => void) => {
+      (details: OnHeadersReceivedListenerDetails, callback: (headersReceivedResponse: HeadersReceivedResponse) => void) => {
         const headers = { ...details.responseHeaders };
 
         // Ensure Access-Control-Allow-Origin is set to allow the renderer to read images if needed
@@ -321,6 +316,7 @@ class MangaTechApp {
             }
           }
         } catch (fallbackError) {
+          console.error('Local fallback lookup failed:', fallbackError);
         }
       }
 
@@ -362,95 +358,73 @@ class MangaTechApp {
 
 
     IpcManager.handle('scraper:getDownloadTasks', async () => {
-      try {
-        return await this.downloadManager.getTasks();
-      } catch (error) {
-        throw error;
-      }
+      return await this.downloadManager.getTasks();
     });
 
     IpcManager.handle('scraper:pauseDownload', async (_, taskId: string) => {
-      try {
-        return await this.downloadManager.pauseDownload(taskId);
-      } catch (error) {
-        throw error;
-      }
+      return await this.downloadManager.pauseDownload(taskId);
     });
 
     IpcManager.handle('scraper:resumeDownload', async (_, taskId: string) => {
-      try {
-        return await this.downloadManager.resumeDownload(taskId);
-      } catch (error) {
-        throw error;
-      }
+      return await this.downloadManager.resumeDownload(taskId);
     });
 
     IpcManager.handle('scraper:cancelDownload', async (_, taskId: string) => {
-      try {
-        return await this.downloadManager.cancelDownload(taskId);
-      } catch (error) {
-        throw error;
-      }
+      return await this.downloadManager.cancelDownload(taskId);
     });
 
     IpcManager.handle('scraper:retryDownload', async (_, taskId: string) => {
-      try {
-        return await this.downloadManager.retryDownload(taskId);
-      } catch (error) {
-        throw error;
-      }
+      return await this.downloadManager.retryDownload(taskId);
     });
 
     IpcManager.handle('scraper:scanLocalDownloads', async (_, basePath: string) => {
-      try {
-        const results: any[] = [];
-        const entries = await fs.readdir(basePath, { withFileTypes: true });
+      const results: any[] = [];
+      const entries = await fs.readdir(basePath, { withFileTypes: true });
 
-        const isChapterLike = async (dirPath: string) => {
-          try {
-            const files = await fs.readdir(dirPath, { withFileTypes: true });
-            return files.some(f => f.isFile() && /\.(jpe?g|png|webp|avif)$/i.test(f.name));
-          } catch { return false; }
-        };
+      const isChapterLike = async (dirPath: string) => {
+        try {
+          const files = await fs.readdir(dirPath, { withFileTypes: true });
+          return files.some(f => f.isFile() && /\.(jpe?g|png|webp|avif)$/i.test(f.name));
+        } catch { return false; }
+      };
 
-        // Check if base folder itself is a series
-        const baseChapters: any[] = [];
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            const p = path.join(basePath, entry.name);
-            if (await isChapterLike(p)) {
-              baseChapters.push({ id: entry.name, title: entry.name, path: p });
-            }
+      // Check if base folder itself is a series
+      const baseChapters: any[] = [];
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const p = path.join(basePath, entry.name);
+          if (await isChapterLike(p)) {
+            baseChapters.push({ id: entry.name, title: entry.name, path: p });
           }
         }
-        if (baseChapters.length > 0) {
-          results.push({ title: path.basename(basePath), path: basePath, chapters: baseChapters });
-        }
-
-        // Check subdirectories for series
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            const seriesPath = path.join(basePath, entry.name);
-            if (baseChapters.some(c => c.path === seriesPath)) continue;
-
-            try {
-              const subEntries = await fs.readdir(seriesPath, { withFileTypes: true });
-              const chapters: any[] = [];
-              for (const sub of subEntries) {
-                if (sub.isDirectory() && await isChapterLike(path.join(seriesPath, sub.name))) {
-                  chapters.push({ id: sub.name, title: sub.name, path: path.join(seriesPath, sub.name) });
-                }
-              }
-              if (chapters.length > 0) {
-                results.push({ title: entry.name, path: seriesPath, chapters: chapters });
-              }
-            } catch { }
-          }
-        }
-        return results;
-      } catch (err) {
-        throw err;
       }
+      if (baseChapters.length > 0) {
+        results.push({ title: path.basename(basePath), path: basePath, chapters: baseChapters });
+      }
+
+      // Check subdirectories for series
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const seriesPath = path.join(basePath, entry.name);
+          if (baseChapters.some(c => c.path === seriesPath)) continue;
+
+          try {
+            const subEntries = await fs.readdir(seriesPath, { withFileTypes: true });
+            const chapters: any[] = [];
+            for (const sub of subEntries) {
+              if (sub.isDirectory() && await isChapterLike(path.join(seriesPath, sub.name))) {
+                chapters.push({ id: sub.name, title: sub.name, path: path.join(seriesPath, sub.name) });
+              }
+            }
+            if (chapters.length > 0) {
+              results.push({ title: entry.name, path: seriesPath, chapters: chapters });
+            }
+          } catch (scanError) {
+            console.error(`Failed to scan sub-entries for ${seriesPath}:`, scanError);
+          }
+        }
+      }
+      return results;
     });
   }
 }

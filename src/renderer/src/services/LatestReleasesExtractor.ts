@@ -166,7 +166,7 @@ export class LatestReleasesExtractor {
       '.content-homepage-item'
     ]
 
-    let releaseElements: cheerio.Cheerio<cheerio.Element> | null = null
+    let releaseElements: cheerio.Cheerio<any> | null = null
 
     // Try different selectors to find the latest releases section
     for (const selector of possibleSelectors) {
@@ -187,15 +187,15 @@ export class LatestReleasesExtractor {
     }
 
     // Parse each release item
-    releaseElements.each((index, element) => {
+    releaseElements.each((_index, element) => {
       try {
-        const release = this.parseReleaseItem($, $(element), index)
+        const release = this.parseReleaseItem($, $(element), _index)
         if (release) {
           releases.push(release)
         }
       } catch (error) {
         LatestReleasesExtractor.logger.warn('Failed to parse release item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
@@ -209,10 +209,10 @@ export class LatestReleasesExtractor {
    * 
    * @param $ Cheerio instance
    * @param element Release item element
-   * @param index Item index for ID generation
+   * @param _index Item index for ID generation
    * @returns LatestRelease | null Parsed release or null if parsing fails
    */
-  private parseReleaseItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<cheerio.Element>, index: number): LatestRelease | null {
+  private parseReleaseItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, _index: number): LatestRelease | null {
     try {
       // Extract series title
       const titleSelectors = ['h3 a', '.title a', '.manga-title a', 'a.title', '.series-title']
@@ -229,7 +229,7 @@ export class LatestReleasesExtractor {
       }
 
       if (!seriesTitle) {
-        LatestReleasesExtractor.logger.debug('Could not extract series title', { index })
+        LatestReleasesExtractor.logger.debug('Could not extract series title', { index: _index })
         return null
       }
 
@@ -259,7 +259,7 @@ export class LatestReleasesExtractor {
       }
 
       if (!chapterNumber) {
-        LatestReleasesExtractor.logger.debug('Could not extract chapter number', { index, seriesTitle })
+        LatestReleasesExtractor.logger.debug('Could not extract chapter number', { index: _index, seriesTitle })
         return null
       }
 
@@ -300,7 +300,7 @@ export class LatestReleasesExtractor {
         (Date.now() - publishDate.getTime()) < 24 * 60 * 60 * 1000 // Less than 24 hours old
 
       // Generate unique ID
-      const id = `manhwaz-release-${Date.now()}-${index}`
+      const id = `manhwaz-release-${Date.now()}-${_index}`
 
       // Ensure URLs are absolute
       seriesUrl = this.urlManager.resolveUrl(seriesUrl)
@@ -322,7 +322,7 @@ export class LatestReleasesExtractor {
 
     } catch (error) {
       LatestReleasesExtractor.logger.warn('Error parsing release item', {
-        index,
+        index: _index,
         error: error instanceof Error ? error.message : 'Unknown error'
       })
       return null

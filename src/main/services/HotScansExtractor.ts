@@ -191,15 +191,15 @@ export class HotScansExtractor {
     }
 
     // Parse each hot scan item
-    hotScanElements.each((index, element) => {
+    hotScanElements.each((_index, element) => {
       try {
-        const hotScan = this.parseHotScanItem($, $(element), index)
+        const hotScan = this.parseHotScanItem($, $(element), _index)
         if (hotScan) {
           hotScans.push(hotScan)
         }
       } catch (error) {
         HotScansExtractor.logger.warn('Failed to parse hot scan item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
@@ -214,10 +214,10 @@ export class HotScansExtractor {
    * 
    * @param $ Cheerio instance
    * @param element Hot scan item element
-   * @param index Item index for ranking and ID generation
+   * @param _index Item index for ranking and ID generation
    * @returns HotScan | null Parsed hot scan or null if parsing fails
    */
-  private parseHotScanItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, index: number): HotScan | null {
+  private parseHotScanItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, _index: number): HotScan | null {
     try {
       // Extract series title
       const titleSelectors = ['.info-item .line-2 a', '.info-item .font-weight-bold a', 'h3 a', '.title a', '.manga-title a', 'a.title', '.series-title', '.name a']
@@ -243,7 +243,7 @@ export class HotScansExtractor {
       }
 
       if (!seriesTitle) {
-        HotScansExtractor.logger.debug('Could not extract series title', { index })
+        HotScansExtractor.logger.debug('Could not extract series title', { index: _index })
         return null
       }
 
@@ -368,7 +368,7 @@ export class HotScansExtractor {
 
       // Generate unique ID from URL slug
       const slug = this.urlManager.extractSeriesId(seriesUrl)
-      const id = slug || `manhwaz-hotscan-${Date.now()}-${index}`
+      const id = slug || `manhwaz-hotscan-${Date.now()}-${_index}`
 
       const hotScan: HotScan = {
         id,
@@ -387,7 +387,7 @@ export class HotScansExtractor {
 
     } catch (error) {
       HotScansExtractor.logger.warn('Error parsing hot scan item', {
-        index,
+        index: _index,
         error: error instanceof Error ? error.message : 'Unknown error'
       })
       return null

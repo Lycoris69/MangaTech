@@ -22,7 +22,7 @@ const DownloadsPage: React.FC = () => {
     useEffect(() => {
         const fetchTasks = async () => {
             try {
-                // @ts-ignore - electronAPI might not be recognized by TS in renderer but it exists via preload
+                // @ts-expect-error - electronAPI exists via preload
                 const initialTasks = await window.electronAPI.scraper.getDownloadTasks();
                 setTasks(initialTasks);
             } catch (error) {
@@ -34,7 +34,7 @@ const DownloadsPage: React.FC = () => {
 
         fetchTasks();
 
-        // @ts-ignore
+        // @ts-expect-error - electronAPI exists via preload
         const unsubscribe = window.electronAPI.on('download:tasks-updated', (updatedTasks: DownloadTask[]) => {
             setTasks(updatedTasks);
         });

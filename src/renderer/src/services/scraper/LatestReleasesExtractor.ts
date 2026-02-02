@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio'
 import axios, { AxiosInstance } from 'axios'
 import winston from 'winston'
-import { LatestRelease } from '../types'
+import { LatestRelease } from '../../types'
 import { URLManager } from './URLManager'
 import { RateLimiter } from './RateLimiter'
 import { ContentValidator } from './ContentValidator'
-import { ScrapingError, ValidationError } from './WebScrapingService'
+import { ScrapingError, ValidationError } from '../WebScrapingService'
 
 export class LatestReleasesExtractor {
   private static logger: winston.Logger
@@ -171,15 +171,15 @@ export class LatestReleasesExtractor {
     }
 
     // Parse each release item
-    releaseElements.each((index: number, element: any) => {
+    releaseElements.each((_index: number, element: any) => {
       try {
-        const release = this.parseReleaseItem($, $(element), index)
+        const release = this.parseReleaseItem($, $(element), _index)
         if (release) {
           releases.push(release)
         }
       } catch (error) {
         LatestReleasesExtractor.logger.warn('Failed to parse release item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
@@ -191,7 +191,7 @@ export class LatestReleasesExtractor {
   /**
    * Parse individual release item from HTML element
    */
-  private parseReleaseItem($: any, element: any, index: number): LatestRelease | null {
+  private parseReleaseItem($: any, element: any, _index: number): LatestRelease | null {
     try {
       // Extract series title
       const titleSelectors = [
@@ -215,7 +215,7 @@ export class LatestReleasesExtractor {
       }
 
       if (!seriesTitle) {
-        LatestReleasesExtractor.logger.debug('Could not extract series title', { index })
+        LatestReleasesExtractor.logger.debug('Could not extract series title', { index: _index })
         return null
       }
 
@@ -251,7 +251,7 @@ export class LatestReleasesExtractor {
       }
 
       if (!chapterNumber) {
-        LatestReleasesExtractor.logger.debug('Could not extract chapter number', { index, seriesTitle })
+        LatestReleasesExtractor.logger.debug('Could not extract chapter number', { index: _index, seriesTitle })
         return null
       }
 
@@ -332,7 +332,7 @@ export class LatestReleasesExtractor {
 
     } catch (error) {
       LatestReleasesExtractor.logger.warn('Error parsing release item', {
-        index,
+        index: _index,
         error: error instanceof Error ? error.message : 'Unknown error'
       })
       return null

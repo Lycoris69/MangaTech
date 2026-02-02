@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { LatestRelease } from '../types';
-import { ManhwazScraper } from '../services/ManhwazScraper';
+import { ManhwazScraper } from '../services/scraper/ManhwazScraper';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useNotifications } from './NotificationSystem';
 import './LatestReleasesComponent.css';
@@ -24,11 +24,10 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const scraper = useMemo(() => new ManhwazScraper(), []);
   const { error: showError } = useNotifications();
 
-  const scraper = new ManhwazScraper();
-
-  const loadLatestReleases = async () => {
+  const loadLatestReleases = useCallback(async () => {
     try {
       setError(null);
       const releases = await scraper.getLatestReleases();
@@ -41,11 +40,11 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
     } finally {
       setLoading(false);
     }
-  };
+  }, [maxItems, scraper, showError]);
 
   useEffect(() => {
     loadLatestReleases();
-  }, [maxItems]);
+  }, [loadLatestReleases]);
 
   // Auto-refresh functionality
   useEffect(() => {
@@ -56,7 +55,7 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, loadLatestReleases]);
 
   const handleSeriesClick = (release: LatestRelease) => {
     if (onSeriesClick) {
@@ -74,13 +73,13 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
   const formatTimeAgo = (date: Date): string => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
+
     const diffInWeeks = Math.floor(diffInDays / 7);
     return `${diffInWeeks}w ago`;
   };
@@ -125,8 +124,8 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
               Updated {formatTimeAgo(lastUpdated)}
             </span>
           )}
-          <button 
-            onClick={loadLatestReleases} 
+          <button
+            onClick={loadLatestReleases}
             className="refresh-button"
             title="Refresh latest releases"
           >
@@ -141,14 +140,14 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
 
       <div className="releases-grid">
         {latestReleases.map((release) => (
-          <div 
-            key={release.id} 
+          <div
+            key={release.id}
             className="release-card"
             onClick={() => handleSeriesClick(release)}
           >
             <div className="release-cover">
-              <img 
-                src={release.coverImageUrl} 
+              <img
+                src={release.coverImageUrl}
                 alt={release.seriesTitle}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -159,12 +158,12 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
                 <div className="new-badge">NEW</div>
               )}
             </div>
-            
+
             <div className="release-info">
               <h4 className="series-title" title={release.seriesTitle}>
                 {release.seriesTitle}
               </h4>
-              
+
               <div className="chapter-info">
                 <span className="chapter-number">Ch. {release.chapterNumber}</span>
                 {release.chapterTitle && (
@@ -173,12 +172,12 @@ export const LatestReleasesComponent: React.FC<LatestReleasesComponentProps> = (
                   </span>
                 )}
               </div>
-              
+
               <div className="release-meta">
                 <span className="publish-date">
                   {formatTimeAgo(release.publishDate)}
                 </span>
-                <button 
+                <button
                   className="read-button"
                   onClick={(e) => handleChapterClick(release, e)}
                   title="Read this chapter"

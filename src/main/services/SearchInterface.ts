@@ -245,7 +245,7 @@ export class SearchInterface {
       return results
     }
 
-    $results.each((index, element) => {
+    $results.each((_index, element) => {
       try {
         const $item = $(element)
 
@@ -254,14 +254,14 @@ export class SearchInterface {
         const title = titleElement.text().trim() || titleElement.attr('title')?.trim() || ''
 
         if (!title) {
-          SearchInterface.logger.debug('Skipping result with no title', { index })
+          SearchInterface.logger.debug('Skipping result with no title', { index: _index })
           return
         }
 
         // Extract series URL
         const seriesUrl = this.urlManager.resolveUrl(titleElement.attr('href') || '')
         if (!seriesUrl || !this.urlManager.validateUrl(seriesUrl)) {
-          SearchInterface.logger.debug('Skipping result with invalid URL', { index, title, url: seriesUrl })
+          SearchInterface.logger.debug('Skipping result with invalid URL', { index: _index, title, url: seriesUrl })
           return
         }
 
@@ -336,7 +336,7 @@ export class SearchInterface {
         const slug = this.urlManager.extractSeriesId(seriesUrl)
         const id = slug ||
           seriesUrl.split('/').pop() ||
-          `search-${Date.now()}-${index}`
+          `search-${Date.now()}-${_index}`
 
         const result: SeriesSearchResult = {
           id,
@@ -362,7 +362,7 @@ export class SearchInterface {
 
       } catch (error) {
         SearchInterface.logger.warn('Failed to parse search result item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }

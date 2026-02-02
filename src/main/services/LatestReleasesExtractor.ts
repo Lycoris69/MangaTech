@@ -188,15 +188,15 @@ export class LatestReleasesExtractor {
     }
 
     // Parse each release item
-    releaseElements.each((index, element) => {
+    releaseElements.each((_index, element) => {
       try {
-        const release = this.parseReleaseItem($, $(element), index)
+        const release = this.parseReleaseItem($, $(element), _index)
         if (release) {
           releases.push(release)
         }
       } catch (error) {
         LatestReleasesExtractor.logger.warn('Failed to parse release item', {
-          index,
+          index: _index,
           error: error instanceof Error ? error.message : 'Unknown error'
         })
       }
@@ -210,10 +210,10 @@ export class LatestReleasesExtractor {
    * 
    * @param $ Cheerio instance
    * @param element Release item element
-   * @param index Item index for ID generation
+   * @param _index Item index for ID generation
    * @returns LatestRelease | null Parsed release or null if parsing fails
    */
-  private parseReleaseItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, index: number): LatestRelease | null {
+  private parseReleaseItem($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, _index: number): LatestRelease | null {
     try {
       // Extract series title
       const titleSelectors = ['.post-title a', 'h3 a', '.title a', '.manga-title a', 'a.title', '.series-title']
@@ -239,7 +239,7 @@ export class LatestReleasesExtractor {
       }
 
       if (!seriesTitle) {
-        LatestReleasesExtractor.logger.debug('Could not extract series title', { index })
+        LatestReleasesExtractor.logger.debug('Could not extract series title', { index: _index })
         return null
       }
 
@@ -269,7 +269,7 @@ export class LatestReleasesExtractor {
       }
 
       if (!chapterNumber) {
-        LatestReleasesExtractor.logger.debug('Could not extract chapter number', { index, seriesTitle })
+        LatestReleasesExtractor.logger.debug('Could not extract chapter number', { index: _index, seriesTitle })
         return null
       }
 
@@ -315,7 +315,7 @@ export class LatestReleasesExtractor {
 
       // Generate unique ID from URL slug
       const slug = this.urlManager.extractSeriesId(seriesUrl)
-      const id = slug || `manhwaz-release-${Date.now()}-${index}`
+      const id = slug || `manhwaz-release-${Date.now()}-${_index}`
 
       console.log(`[LatestReleasesExtractor] seriesUrl=${seriesUrl}, slug=${slug}, id=${id}`)
 
@@ -335,7 +335,7 @@ export class LatestReleasesExtractor {
 
     } catch (error) {
       LatestReleasesExtractor.logger.warn('Error parsing release item', {
-        index,
+        index: _index,
         error: error instanceof Error ? error.message : 'Unknown error'
       })
       return null

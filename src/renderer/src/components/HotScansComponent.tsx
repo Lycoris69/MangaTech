@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HotScan } from '../types';
-import { ManhwazScraper } from '../services/ManhwazScraper';
+import { ManhwazScraper } from '../services/scraper/ManhwazScraper';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useNotifications } from './NotificationSystem';
 import './HotScansComponent.css';
@@ -24,21 +24,20 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const scraper = useMemo(() => new ManhwazScraper(), []);
   const { error: showError } = useNotifications();
 
-  const scraper = new ManhwazScraper();
-
-  const loadHotScans = async () => {
+  const loadHotScans = useCallback(async () => {
     try {
       setError(null);
       const hotScansExtractor = scraper.getHotScansExtractor();
       const scans = await hotScansExtractor.extractHotScans();
-      
+
       // Sort by rank and limit results
       const sortedScans = scans
-        .sort((a, b) => a.rank - b.rank)
+        .sort((a: HotScan, b: HotScan) => a.rank - b.rank)
         .slice(0, maxItems);
-      
+
       setHotScans(sortedScans);
       setLastUpdated(new Date());
     } catch (err) {
@@ -48,11 +47,11 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [maxItems, scraper, showError]);
 
   useEffect(() => {
     loadHotScans();
-  }, [maxItems]);
+  }, [loadHotScans]);
 
   // Auto-refresh functionality
   useEffect(() => {
@@ -63,7 +62,7 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, loadHotScans]);
 
   const handleSeriesClick = (hotScan: HotScan) => {
     if (onSeriesClick) {
@@ -90,13 +89,13 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
   const formatTimeAgo = (date: Date): string => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
+
     const diffInWeeks = Math.floor(diffInDays / 7);
     return `${diffInWeeks}w ago`;
   };
@@ -141,8 +140,8 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
               Updated {formatTimeAgo(lastUpdated)}
             </span>
           )}
-          <button 
-            onClick={loadHotScans} 
+          <button
+            onClick={loadHotScans}
             className="refresh-button"
             title="Refresh hot scans"
           >
@@ -157,8 +156,8 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
 
       <div className="hot-scans-grid">
         {hotScans.map((hotScan) => (
-          <div 
-            key={hotScan.id} 
+          <div
+            key={hotScan.id}
             className="hot-scan-card"
             onClick={() => handleSeriesClick(hotScan)}
           >
@@ -167,10 +166,10 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
                 #{hotScan.rank}
               </div>
             )}
-            
+
             <div className="scan-cover">
-              <img 
-                src={hotScan.coverImageUrl} 
+              <img
+                src={hotScan.coverImageUrl}
                 alt={hotScan.seriesTitle}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -186,12 +185,12 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="scan-info">
               <h4 className="series-title" title={hotScan.seriesTitle}>
                 {hotScan.seriesTitle}
               </h4>
-              
+
               <div className="scan-stats">
                 <div className="view-count">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -200,12 +199,12 @@ export const HotScansComponent: React.FC<HotScansComponentProps> = ({
                   </svg>
                   {formatViewCount(hotScan.viewCount)}
                 </div>
-                
+
                 <div className="last-chapter">
                   Ch. {hotScan.lastChapter}
                 </div>
               </div>
-              
+
               <div className="scan-genres">
                 {hotScan.genres.slice(0, 2).map((genre, index) => (
                   <span key={index} className="genre-tag">

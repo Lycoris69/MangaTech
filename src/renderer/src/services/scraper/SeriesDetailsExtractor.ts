@@ -1,11 +1,11 @@
 import * as cheerio from 'cheerio'
 import axios, { AxiosInstance } from 'axios'
 import winston from 'winston'
-import { SeriesDetails, ChapterInfo } from '../types'
+import { SeriesDetails, ChapterInfo } from '../../types'
 import { URLManager } from './URLManager'
 import { RateLimiter } from './RateLimiter'
 import { ContentValidator } from './ContentValidator'
-import { ScrapingError, ValidationError } from './WebScrapingService'
+import { ScrapingError, ValidationError } from '../WebScrapingService'
 
 /**
  * SeriesDetailsExtractor - Extracts comprehensive series details from manhwaz.com series pages
