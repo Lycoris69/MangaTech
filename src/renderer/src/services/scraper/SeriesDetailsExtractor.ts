@@ -345,7 +345,7 @@ export class SeriesDetailsExtractor {
         }
 
         // 3. CLEANUP: Artifacts
-        synopsis = synopsis.replace(/Read\s+.*?\s+at\s+[\w\.]+/i, '').trim();
+        synopsis = synopsis.replace(/Read\s+.*?\s+at\s+[\w.]+/i, '').trim();
 
         if (synopsis && synopsis.length > 10) {
           SeriesDetailsExtractor.logger.debug('Extracted synopsis', {

@@ -63,7 +63,9 @@ export class URLManager {
     }
 
     // Build URL from series ID
-    let cleanId = seriesId.trim().replace(/^\/+|\/+$/g, '')
+    const trimmedId = seriesId.trim().replace(/^\/+|\/+$/g, '')
+    let cleanId = trimmedId
+
 
     // Strip the 'manhwaz-series-' prefix if present to avoid double-prefixing
     if (cleanId.startsWith('manhwaz-series-')) {
@@ -95,7 +97,8 @@ export class URLManager {
     }
 
     // Build URL from chapter ID
-    let cleanId = chapterId.trim().replace(/^\/+|\/+$/g, '')
+    const cleanId = chapterId.trim().replace(/^\/+|\/+$/g, '')
+
 
     // If it starts with 'webtoon/', just prepend base URL
     if (cleanId.startsWith('webtoon/')) {
@@ -138,7 +141,8 @@ export class URLManager {
 
     try {
       const parsedUrl = new URL(url)
-      const pathMatch = parsedUrl.pathname.match(/\/webtoon\/([^\/]+)/)
+      const pathMatch = parsedUrl.pathname.match(/\/webtoon\/([^/]+)/)
+
       return pathMatch ? pathMatch[1] : null
     } catch {
       return null
@@ -158,7 +162,8 @@ export class URLManager {
     try {
       const parsedUrl = new URL(url)
       // Match both /chapter/ID and /webtoon/SERIES/CHAPTER pattern
-      const pathMatch = parsedUrl.pathname.match(/\/(?:chapter|webtoon\/[^\/]+)\/([^\/]+)/)
+      const pathMatch = parsedUrl.pathname.match(/\/(?:chapter|webtoon\/[^/]+)\/([^/]+)/)
+
       return pathMatch ? pathMatch[1] : null
     } catch {
       return null

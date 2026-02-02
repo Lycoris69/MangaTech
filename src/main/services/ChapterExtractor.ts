@@ -352,7 +352,7 @@ export class ChapterExtractor {
   private async getImageDimensions(imageUrl: string): Promise<{ width?: number; height?: number }> {
     try {
       // Make a partial request to get image headers
-      const response = await this.axiosInstance.get(imageUrl, {
+      await this.axiosInstance.get(imageUrl, {
         responseType: 'stream',
         timeout: 5000,
         headers: {

@@ -1,6 +1,7 @@
-// @ts-ignore
+import { app, BrowserWindow, session, dialog, protocol, net } from 'electron';
+
 import * as electron from 'electron';
-const { app, BrowserWindow, ipcMain, session, dialog, protocol, net } = require('electron');
+
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { ScraperManager } from './services/ScraperManager';
@@ -269,68 +270,64 @@ class MangaTechApp {
 
     // Get chapter pages
     IpcManager.handle('scraper:getChapterPages', async (_, chapterUrl: string, seriesId?: string) => {
-      try {
-        // 1. Attempt to load from DownloadManager tasks first
-        const localPages = await this.downloadManager.getLocalChapterPages(chapterUrl);
-        if (localPages && localPages.length > 0) {
-          return localPages;
-        }
+      const localPages = await this.downloadManager.getLocalChapterPages(chapterUrl);
+      if (localPages && localPages.length > 0) {
+        return localPages;
+      }
 
-        // 2. Fallback: If seriesId is provided, try to resolve via user-library.json (for imported series)
-        if (seriesId) {
-          try {
-            const libraryPath = path.join(this.dataDir, 'user-library.json');
-            const libraryData = JSON.parse(await fs.readFile(libraryPath, 'utf-8'));
-            const download = libraryData.downloads?.find((d: any) => d.seriesId === seriesId);
+      // 2. Fallback: If seriesId is provided, try to resolve via user-library.json (for imported series)
+      if (seriesId) {
+        try {
+          const libraryPath = path.join(this.dataDir, 'user-library.json');
+          const libraryData = JSON.parse(await fs.readFile(libraryPath, 'utf-8'));
+          const download = libraryData.downloads?.find((d: any) => d.seriesId === seriesId);
 
-            if (download && download.downloadPath) {
-              const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-              const chapterTarget = normalize(path.basename(chapterUrl));
+          if (download && download.downloadPath) {
+            const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const chapterTarget = normalize(path.basename(chapterUrl));
 
-              // Try direct match first
-              let chapterPath = path.join(download.downloadPath, path.basename(chapterUrl));
+            // Try direct match first
+            let chapterPath = path.join(download.downloadPath, path.basename(chapterUrl));
 
-              if (!(await fs.access(chapterPath).then(() => true).catch(() => false))) {
-                // Fuzzy match: Look for a folder that matches the normalized name
-                const subDirs = await fs.readdir(download.downloadPath, { withFileTypes: true });
-                const matchedDir = subDirs.find(d => d.isDirectory() && normalize(d.name) === chapterTarget);
+            if (!(await fs.access(chapterPath).then(() => true).catch(() => false))) {
+              // Fuzzy match: Look for a folder that matches the normalized name
+              const subDirs = await fs.readdir(download.downloadPath, { withFileTypes: true });
+              const matchedDir = subDirs.find(d => d.isDirectory() && normalize(d.name) === chapterTarget);
 
-                if (matchedDir) {
-                  chapterPath = path.join(download.downloadPath, matchedDir.name);
-                } else {
-                  // Final attempt: Check if the chapterUrl itself is a subfolder
-                  const altPath = path.join(download.downloadPath, chapterUrl.replace(/^\/+/, ''));
-                  if (await fs.access(altPath).then(() => true).catch(() => false)) {
-                    chapterPath = altPath;
-                  }
-                }
-              }
-
-              if (await fs.access(chapterPath).then(() => true).catch(() => false)) {
-                const files = await fs.readdir(chapterPath);
-                const imageFiles = files
-                  .filter(f => /\.(jpe?g|png|webp|avif)$/i.test(f))
-                  .sort();
-
-                if (imageFiles.length > 0) {
-                  return imageFiles.map((file, index) => ({
-                    pageNumber: index + 1,
-                    imageUrl: `manga-local:///${path.join(chapterPath, file)}`,
-                    localPath: path.join(chapterPath, file)
-                  }));
+              if (matchedDir) {
+                chapterPath = path.join(download.downloadPath, matchedDir.name);
+              } else {
+                // Final attempt: Check if the chapterUrl itself is a subfolder
+                const altPath = path.join(download.downloadPath, chapterUrl.replace(/^\/+/, ''));
+                if (await fs.access(altPath).then(() => true).catch(() => false)) {
+                  chapterPath = altPath;
                 }
               }
             }
-          } catch (fallbackError) {
-          }
-        }
 
-        // 3. Final Fallback to online scraper
-        return await this.scraperManager.getChapterPages(chapterUrl);
-      } catch (error) {
-        throw error;
+            if (await fs.access(chapterPath).then(() => true).catch(() => false)) {
+              const files = await fs.readdir(chapterPath);
+              const imageFiles = files
+                .filter(f => /\.(jpe?g|png|webp|avif)$/i.test(f))
+                .sort();
+
+              if (imageFiles.length > 0) {
+                return imageFiles.map((file, index) => ({
+                  pageNumber: index + 1,
+                  imageUrl: `manga-local:///${path.join(chapterPath, file)}`,
+                  localPath: path.join(chapterPath, file)
+                }));
+              }
+            }
+          }
+        } catch (fallbackError) {
+        }
       }
+
+      // 3. Final Fallback to online scraper
+      return await this.scraperManager.getChapterPages(chapterUrl);
     });
+
 
     // --- Download Handlers ---
 
@@ -352,19 +349,17 @@ class MangaTechApp {
     });
 
     IpcManager.handle('scraper:downloadChapter', async (_, { seriesId, chapterId, seriesTitle, chapterTitle, basePath }) => {
-      try {
-        const result = await this.downloadManager.downloadChapter(
-          seriesId,
-          chapterId,
-          seriesTitle,
-          chapterTitle,
-          basePath
-        );
-        return result;
-      } catch (error) {
-        throw error;
-      }
+      const result = await this.downloadManager.downloadChapter(
+
+        seriesId,
+        chapterId,
+        seriesTitle,
+        chapterTitle,
+        basePath
+      );
+      return result;
     });
+
 
     IpcManager.handle('scraper:getDownloadTasks', async () => {
       try {

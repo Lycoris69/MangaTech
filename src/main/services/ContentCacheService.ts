@@ -16,13 +16,11 @@ import * as path from 'path'
 import { app } from 'electron'
 import sharp from 'sharp'
 import winston from 'winston'
-import { 
-  LatestRelease, 
-  HotScan, 
-  SeriesSearchResult, 
-  SeriesDetails, 
-  PageData,
-  ChapterInfo 
+import {
+  LatestRelease,
+  HotScan,
+  SeriesDetails,
+  PageData
 } from '../types'
 import { SearchResponse } from './SearchInterface'
 
@@ -249,9 +247,9 @@ export class ContentCacheService {
   async cacheSearchResults(query: string, results: SearchResponse): Promise<void> {
     const key = `search:${this.normalizeSearchQuery(query)}`
     await this.set(key, results, this.config.searchCacheTTL, ['search'])
-    ContentCacheService.logger.debug('Cached search results', { 
-      query, 
-      resultCount: results.results.length 
+    ContentCacheService.logger.debug('Cached search results', {
+      query,
+      resultCount: results.results.length
     })
   }
 
@@ -361,7 +359,7 @@ export class ContentCacheService {
   async getCachedImage(imageUrl: string): Promise<string | null> {
     const imageKey = this.generateImageKey(imageUrl)
     const cacheKey = `image:${imageKey}`
-    
+
     const entry = this.memoryCache.get(cacheKey)
     if (!entry || Date.now() > entry.expiresAt) {
       return null
@@ -404,7 +402,7 @@ export class ContentCacheService {
     }
 
     this.updateMemoryStats()
-    
+
     ContentCacheService.logger.info('Invalidated cache entries', {
       keyOrTag,
       deletedCount: keysToDelete.length
@@ -447,7 +445,7 @@ export class ContentCacheService {
    */
   async warmCache(urls: string[] = []): Promise<void> {
     const urlsToWarm = urls.length > 0 ? urls : this.warmingConfig.priorityUrls
-    
+
     if (urlsToWarm.length === 0) {
       return
     }
@@ -459,7 +457,7 @@ export class ContentCacheService {
 
     // Process URLs in batches to respect concurrency limits
     const batches = this.chunkArray(urlsToWarm, this.warmingConfig.maxConcurrentWarmups)
-    
+
     for (const batch of batches) {
       const warmupPromises = batch.map(url => this.warmSingleUrl(url))
       await Promise.allSettled(warmupPromises)
@@ -474,7 +472,7 @@ export class ContentCacheService {
     this.stats.performance.totalRequests++
 
     const entry = this.memoryCache.get(key)
-    
+
     if (!entry || Date.now() > entry.expiresAt) {
       this.stats.performance.totalMisses++
       this.updatePerformanceStats(startTime)
@@ -493,8 +491,8 @@ export class ContentCacheService {
    * Generic cache set method
    */
   private async set<T>(
-    key: string, 
-    data: T, 
+    key: string,
+    data: T,
     ttl: number = this.config.defaultTTL,
     tags: string[] = []
   ): Promise<void> {
@@ -582,8 +580,8 @@ export class ContentCacheService {
   private updatePerformanceStats(startTime: number): void {
     const accessTime = Date.now() - startTime
     const totalRequests = this.stats.performance.totalRequests
-    
-    this.stats.performance.averageAccessTime = 
+
+    this.stats.performance.averageAccessTime =
       (this.stats.performance.averageAccessTime * (totalRequests - 1) + accessTime) / totalRequests
   }
 
@@ -620,7 +618,7 @@ export class ContentCacheService {
       const metadataPath = path.join(this.diskCachePath, 'metadata.json')
       const data = await fs.readFile(metadataPath, 'utf-8')
       const metadata = JSON.parse(data)
-      
+
       // Restore valid entries to memory cache
       for (const entry of metadata.entries || []) {
         if (Date.now() < entry.expiresAt) {
