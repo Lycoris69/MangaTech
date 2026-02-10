@@ -1,6 +1,8 @@
 # MangaTech
 
 A desktop application for searching, downloading, and reading manga, manhua, and webtoon content.
+> [!IMPORTANT]
+> This application is for personal use only. All rights belong to their respective owners.
 
 ## Features
 
