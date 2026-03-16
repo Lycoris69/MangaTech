@@ -1,4 +1,4 @@
-import { ErrorHandler, ErrorContext } from './ErrorHandler'
+import { ErrorHandler, ErrorContext } from './scraper/ErrorHandler'
 import { ErrorType, ErrorSeverity } from '../types/errors'
 
 // Mock winston to avoid file system operations in tests
@@ -91,7 +91,7 @@ describe('ErrorHandler', () => {
       await errorHandler.handleError(error, context)
       await errorHandler.handleError(error, context)
       await errorHandler.handleError(error, context)
-      
+
       const result = await errorHandler.handleError(error, context)
 
       expect(result.type).toBe(ErrorType.SCRAPING)

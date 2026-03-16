@@ -3,7 +3,7 @@
  * Tests URL validation and construction for manhwaz.com
  */
 
-import { URLManager } from './URLManager'
+import { URLManager } from './scraper/URLManager'
 
 describe('URLManager', () => {
   let urlManager: URLManager

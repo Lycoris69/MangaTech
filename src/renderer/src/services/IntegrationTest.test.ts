@@ -3,7 +3,7 @@ import { LibraryService } from './LibraryService';
 import { DownloadManager } from './DownloadManager';
 import { OnlineReadingService } from './OnlineReadingService';
 import { StorageService } from './StorageService';
-import { PerformanceOptimizer } from './PerformanceOptimizer';
+import { PerformanceOptimizer } from './scraper/PerformanceOptimizer';
 import { Series, Chapter, SeriesSearchResult } from '../types';
 
 /**

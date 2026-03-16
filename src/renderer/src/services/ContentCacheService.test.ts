@@ -2,9 +2,9 @@
  * Tests for ContentCacheService
  */
 
-import { ContentCacheService } from './ContentCacheService'
+import { ContentCacheService } from './scraper/ContentCacheService'
 import { LatestRelease, HotScan, SeriesDetails } from '../types'
-import { SearchResponse } from './SearchInterface'
+import { SearchResponse } from './scraper/SearchInterface'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 
@@ -59,7 +59,7 @@ describe('ContentCacheService', () => {
 
   afterEach(async () => {
     await cacheService.cleanup()
-    
+
     // Clean up test cache directory
     try {
       await fs.rmdir(testCacheDir, { recursive: true })
@@ -176,7 +176,7 @@ describe('ContentCacheService', () => {
             sourceUrl: 'https://manhwaz.com/series/search1'
           }
         ],
-        totalResults: 1,
+        totalCount: 1,
         hasMore: false,
         suggestions: []
       }
@@ -191,14 +191,14 @@ describe('ContentCacheService', () => {
       const mockSearchResponse: SearchResponse = {
         query: 'normalized query',
         results: [],
-        totalResults: 0,
+        totalCount: 0,
         hasMore: false,
         suggestions: []
       }
 
       // Cache with different formatting
       await cacheService.cacheSearchResults('  NORMALIZED   QUERY  ', mockSearchResponse)
-      
+
       // Should retrieve with normalized query
       const cached = await cacheService.getCachedSearchResults('normalized query')
       expect(cached).toEqual(mockSearchResponse)
@@ -255,7 +255,7 @@ describe('ContentCacheService', () => {
       ]
 
       await cacheService.cacheLatestReleases(mockReleases)
-      
+
       // Verify cache exists
       let cached = await cacheService.getCachedLatestReleases()
       expect(cached).toEqual(mockReleases)
@@ -285,9 +285,9 @@ describe('ContentCacheService', () => {
       ]
 
       await cacheService.cacheLatestReleases(mockReleases)
-      
+
       const stats = cacheService.getCacheStats()
-      
+
       expect(stats.memoryUsage.entries).toBeGreaterThan(0)
       expect(stats.memoryUsage.sizeBytes).toBeGreaterThan(0)
       expect(stats.memoryUsage.maxSizeBytes).toBe(10 * 1024 * 1024) // 10MB

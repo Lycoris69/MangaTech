@@ -2,8 +2,8 @@
  * Tests for PerformanceOptimizer
  */
 
-import { PerformanceOptimizer } from './PerformanceOptimizer'
-import { RateLimiter } from './RateLimiter'
+import { PerformanceOptimizer } from './scraper/PerformanceOptimizer'
+import { RateLimiter } from './scraper/RateLimiter'
 import axios from 'axios'
 
 // Mock axios
@@ -106,12 +106,12 @@ describe('PerformanceOptimizer', () => {
       }
 
       // Mock slow responses to test concurrency
-      mockAxiosInstance.request.mockImplementation(() => 
+      mockAxiosInstance.request.mockImplementation(() =>
         new Promise(resolve => setTimeout(() => resolve(mockResponse), 100))
       )
 
       // Make more requests than the concurrent limit
-      const requests = Array.from({ length: 10 }, (_, i) => 
+      const requests = Array.from({ length: 10 }, (_, i) =>
         performanceOptimizer.makeRequest(`https://example.com/${i}`)
       )
 
@@ -163,7 +163,7 @@ describe('PerformanceOptimizer', () => {
 
       expect(responses).toHaveLength(7)
       expect(mockAxiosInstance.request).toHaveBeenCalledTimes(7)
-      
+
       // Should have taken some time due to batching delays
       expect(endTime - startTime).toBeGreaterThan(50) // At least some delay
     })
@@ -202,7 +202,7 @@ describe('PerformanceOptimizer', () => {
       expect(metrics).toHaveProperty('errorRate')
       expect(metrics).toHaveProperty('connectionPoolStats')
       expect(metrics).toHaveProperty('memoryUsage')
-      
+
       expect(typeof metrics.totalRequests).toBe('number')
       expect(typeof metrics.totalErrors).toBe('number')
       expect(typeof metrics.concurrentRequests).toBe('number')

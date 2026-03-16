@@ -11,10 +11,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { ManhwazHomepage } from './ManhwazHomepage'
 import HomePage from '../pages/HomePage'
-import { ManhwazScraper } from '../services/ManhwazScraper'
+import { ManhwazScraper } from '../services/scraper/ManhwazScraper'
 
 // Mock the scraper services
-jest.mock('../services/ManhwazScraper')
+jest.mock('../services/scraper/ManhwazScraper')
 
 // Mock react-router-dom
 const mockNavigate = jest.fn()
@@ -176,7 +176,7 @@ describe('Layout Mirroring and UI Integration Tests', () => {
       renderWithRouter(<ManhwazHomepage />)
 
       const searchInput = screen.getByPlaceholderText('Search thousands of manga titles...')
-      
+
       // Simulate search interaction (Requirements 3.1, 3.2)
       fireEvent.change(searchInput, { target: { value: 'test query' } })
       fireEvent.keyDown(searchInput, { key: 'Enter', code: 'Enter' })

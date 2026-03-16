@@ -3,7 +3,7 @@
  * Tests exponential backoff retry mechanism
  */
 
-import { RetryHandler, RetryConfig, defaultRetryPredicate } from './RetryHandler'
+import { RetryHandler, RetryConfig, defaultRetryPredicate } from './scraper/RetryHandler'
 import winston from 'winston'
 
 // Mock winston logger
@@ -64,7 +64,7 @@ describe('RetryHandler', () => {
     it('should update configuration correctly', () => {
       const newConfig = { maxAttempts: 5, baseDelay: 50, maxDelay: 200 }
       retryHandler.updateConfig(newConfig)
-      
+
       const updatedConfig = retryHandler.getConfig()
       expect(updatedConfig.maxAttempts).toBe(5)
       expect(updatedConfig.baseDelay).toBe(50)
@@ -75,9 +75,9 @@ describe('RetryHandler', () => {
   describe('successful operations', () => {
     it('should execute operation successfully on first attempt', async () => {
       const operation = jest.fn().mockResolvedValue('success')
-      
+
       const result = await retryHandler.executeWithRetry(operation, 'test-operation')
-      
+
       expect(result).toBe('success')
       expect(operation).toHaveBeenCalledTimes(1)
     })
@@ -85,9 +85,9 @@ describe('RetryHandler', () => {
     it('should return operation result', async () => {
       const expectedResult = { data: 'test', count: 42 }
       const operation = jest.fn().mockResolvedValue(expectedResult)
-      
+
       const result = await retryHandler.executeWithRetry(operation, 'test-operation')
-      
+
       expect(result).toEqual(expectedResult)
     })
   })
@@ -99,9 +99,9 @@ describe('RetryHandler', () => {
         .mockRejectedValueOnce(networkError)
         .mockRejectedValueOnce(networkError)
         .mockResolvedValue('success')
-      
+
       const result = await retryHandler.executeWithRetry(operation, 'test-operation')
-      
+
       expect(result).toBe('success')
       expect(operation).toHaveBeenCalledTimes(3)
     })
@@ -111,9 +111,9 @@ describe('RetryHandler', () => {
       const operation = jest.fn()
         .mockRejectedValueOnce(serverError)
         .mockResolvedValue('success')
-      
+
       const result = await retryHandler.executeWithRetry(operation, 'test-operation')
-      
+
       expect(result).toBe('success')
       expect(operation).toHaveBeenCalledTimes(2)
     })
@@ -123,9 +123,9 @@ describe('RetryHandler', () => {
       const operation = jest.fn()
         .mockRejectedValueOnce(rateLimitError)
         .mockResolvedValue('success')
-      
+
       const result = await retryHandler.executeWithRetry(operation, 'test-operation')
-      
+
       expect(result).toBe('success')
       expect(operation).toHaveBeenCalledTimes(2)
     })
@@ -133,17 +133,17 @@ describe('RetryHandler', () => {
     it('should not retry on 4xx client errors (except 429)', async () => {
       const clientError = Object.assign(new Error('Not Found'), { status: 404 })
       const operation = jest.fn().mockRejectedValue(clientError)
-      
+
       await expect(retryHandler.executeWithRetry(operation, 'test-operation'))
         .rejects.toThrow('Operation \'test-operation\' failed after 3 attempts')
-      
+
       expect(operation).toHaveBeenCalledTimes(1)
     })
 
     it('should implement exponential backoff', async () => {
       const error = new Error('ETIMEDOUT')
       const operation = jest.fn().mockRejectedValue(error)
-      
+
       // Should fail after max attempts
       await expect(retryHandler.executeWithRetry(operation, 'test-operation')).rejects.toThrow()
       expect(operation).toHaveBeenCalledTimes(3)
@@ -158,10 +158,10 @@ describe('RetryHandler', () => {
         jitterEnabled: false
       }
       const handler = new RetryHandler(configWithLowMax, mockLogger)
-      
+
       const error = new Error('ECONNRESET')
       const operation = jest.fn().mockRejectedValue(error)
-      
+
       await expect(handler.executeWithRetry(operation, 'test-operation')).rejects.toThrow()
       expect(operation).toHaveBeenCalledTimes(3)
     })
@@ -172,10 +172,10 @@ describe('RetryHandler', () => {
       const customPredicate = jest.fn().mockReturnValue(false)
       const error = new Error('Custom error')
       const operation = jest.fn().mockRejectedValue(error)
-      
+
       await expect(retryHandler.executeWithRetry(operation, 'test-operation', customPredicate))
         .rejects.toThrow()
-      
+
       expect(operation).toHaveBeenCalledTimes(1)
       expect(customPredicate).toHaveBeenCalledWith(error, expect.objectContaining({
         operation: 'test-operation',
@@ -188,9 +188,9 @@ describe('RetryHandler', () => {
       const customPredicate = jest.fn().mockReturnValue(true)
       const error = new Error('Test error')
       const operation = jest.fn().mockRejectedValue(error)
-      
+
       await expect(retryHandler.executeWithRetry(operation, 'test-op', customPredicate)).rejects.toThrow()
-      
+
       // Check that predicate was called with correct context
       expect(customPredicate).toHaveBeenCalledWith(error, expect.objectContaining({
         operation: 'test-op',
@@ -205,10 +205,10 @@ describe('RetryHandler', () => {
     it('should throw final error after all attempts exhausted', async () => {
       const originalError = new Error('ECONNRESET') // Use a retryable error
       const operation = jest.fn().mockRejectedValue(originalError)
-      
+
       await expect(retryHandler.executeWithRetry(operation, 'test-operation'))
         .rejects.toThrow('Operation \'test-operation\' failed after 3 attempts. Last error: ECONNRESET')
-      
+
       expect(operation).toHaveBeenCalledTimes(3)
     })
 
@@ -216,7 +216,7 @@ describe('RetryHandler', () => {
       const originalError = new Error('Original error')
       originalError.stack = 'Original stack trace'
       const operation = jest.fn().mockRejectedValue(originalError)
-      
+
       try {
         await retryHandler.executeWithRetry(operation, 'test-operation')
       } catch (error) {
@@ -226,7 +226,7 @@ describe('RetryHandler', () => {
 
     it('should handle non-Error objects', async () => {
       const operation = jest.fn().mockRejectedValue('string error')
-      
+
       await expect(retryHandler.executeWithRetry(operation, 'test-operation'))
         .rejects.toThrow('Operation \'test-operation\' failed after 3 attempts. Last error: Unknown error')
     })
@@ -238,15 +238,15 @@ describe('RetryHandler', () => {
       const operation = jest.fn()
         .mockRejectedValueOnce(error)
         .mockResolvedValue('success')
-      
+
       await retryHandler.executeWithRetry(operation, 'test-operation')
-      
+
       expect(mockLogger.warn).toHaveBeenCalledWith('Operation failed', expect.objectContaining({
         operation: 'test-operation',
         attempt: 1,
         error: 'ECONNRESET'
       }))
-      
+
       expect(mockLogger.info).toHaveBeenCalledWith('Retrying operation', expect.objectContaining({
         operation: 'test-operation',
         attempt: 1,
@@ -257,9 +257,9 @@ describe('RetryHandler', () => {
     it('should log final failure', async () => {
       const error = new Error('ECONNRESET') // Use a retryable error
       const operation = jest.fn().mockRejectedValue(error)
-      
+
       await expect(retryHandler.executeWithRetry(operation, 'test-operation')).rejects.toThrow()
-      
+
       expect(mockLogger.error).toHaveBeenCalledWith('All retry attempts exhausted', expect.objectContaining({
         operation: 'test-operation',
         totalAttempts: 3
@@ -285,7 +285,7 @@ describe('defaultRetryPredicate', () => {
   it('should retry on 5xx status codes', () => {
     const serverError = Object.assign(new Error('Server Error'), { status: 500 })
     expect(defaultRetryPredicate(serverError, mockContext)).toBe(true)
-    
+
     const badGateway = Object.assign(new Error('Bad Gateway'), { status: 502 })
     expect(defaultRetryPredicate(badGateway, mockContext)).toBe(true)
   })
@@ -298,7 +298,7 @@ describe('defaultRetryPredicate', () => {
   it('should not retry on 4xx client errors (except 429)', () => {
     const notFound = Object.assign(new Error('Not Found'), { status: 404 })
     expect(defaultRetryPredicate(notFound, mockContext)).toBe(false)
-    
+
     const unauthorized = Object.assign(new Error('Unauthorized'), { status: 401 })
     expect(defaultRetryPredicate(unauthorized, mockContext)).toBe(false)
   })

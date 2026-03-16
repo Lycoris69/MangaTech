@@ -3,7 +3,7 @@
  * Tests data validation for scraped manhwaz.com content
  */
 
-import { ContentValidator } from './ContentValidator'
+import { ContentValidator } from './scraper/ContentValidator'
 
 describe('ContentValidator', () => {
   let validator: ContentValidator
@@ -33,8 +33,8 @@ describe('ContentValidator', () => {
 
     it('should reject missing required fields', () => {
       const invalidData = { ...validLatestRelease }
-      delete invalidData.id
-      
+      delete (invalidData as any).id
+
       const result = validator.validateLatestRelease(invalidData)
       expect(result.isValid).toBe(false)
       expect(result.errors.some(error => error.includes('id'))).toBe(true)
@@ -45,7 +45,7 @@ describe('ContentValidator', () => {
         ...validLatestRelease,
         coverImageUrl: 'not-a-url'
       }
-      
+
       const result = validator.validateLatestRelease(invalidData)
       expect(result.isValid).toBe(false)
       expect(result.errors.some(error => error.includes('uri'))).toBe(true)
@@ -53,9 +53,9 @@ describe('ContentValidator', () => {
 
     it('should handle optional fields', () => {
       const dataWithoutOptional = { ...validLatestRelease }
-      delete dataWithoutOptional.chapterTitle
-      delete dataWithoutOptional.isNew
-      
+      delete (dataWithoutOptional as any).chapterTitle
+      delete (dataWithoutOptional as any).isNew
+
       const result = validator.validateLatestRelease(dataWithoutOptional)
       expect(result.isValid).toBe(true)
     })
@@ -65,7 +65,7 @@ describe('ContentValidator', () => {
         ...validLatestRelease,
         seriesTitle: ''
       }
-      
+
       const result = validator.validateLatestRelease(invalidData)
       expect(result.isValid).toBe(false)
     })
@@ -93,7 +93,7 @@ describe('ContentValidator', () => {
 
     it('should validate status enum values', () => {
       const validStatuses = ['ongoing', 'completed', 'hiatus']
-      
+
       validStatuses.forEach(status => {
         const data = { ...validHotScan, status }
         const result = validator.validateHotScan(data)
@@ -106,7 +106,7 @@ describe('ContentValidator', () => {
         ...validHotScan,
         status: 'invalid-status'
       }
-      
+
       const result = validator.validateHotScan(invalidData)
       expect(result.isValid).toBe(false)
     })
@@ -116,17 +116,17 @@ describe('ContentValidator', () => {
         ...validHotScan,
         rating: 15 // Above max of 10
       }
-      
+
       const result = validator.validateHotScan(invalidRating)
       expect(result.isValid).toBe(false)
     })
 
     it('should handle optional numeric fields', () => {
       const dataWithoutOptional = { ...validHotScan }
-      delete dataWithoutOptional.rating
-      delete dataWithoutOptional.viewCount
-      delete dataWithoutOptional.rank
-      
+      delete (dataWithoutOptional as any).rating
+      delete (dataWithoutOptional as any).viewCount
+      delete (dataWithoutOptional as any).rank
+
       const result = validator.validateHotScan(dataWithoutOptional)
       expect(result.isValid).toBe(true)
     })
@@ -153,11 +153,11 @@ describe('ContentValidator', () => {
 
     it('should require core fields', () => {
       const requiredFields = ['id', 'title', 'author', 'seriesUrl']
-      
+
       requiredFields.forEach(field => {
-        const invalidData = { ...validSearchResult }
+        const invalidData = { ...validSearchResult } as any
         delete invalidData[field]
-        
+
         const result = validator.validateSearchResult(invalidData)
         expect(result.isValid).toBe(false)
         expect(result.errors.some(error => error.includes(field))).toBe(true)
@@ -169,7 +169,7 @@ describe('ContentValidator', () => {
         ...validSearchResult,
         relevanceScore: 1.5 // Above max of 1
       }
-      
+
       const result = validator.validateSearchResult(invalidScore)
       expect(result.isValid).toBe(false)
     })
@@ -221,15 +221,15 @@ describe('ContentValidator', () => {
           }
         ]
       }
-      
+
       const result = validator.validateSeriesDetails(invalidChapter)
       expect(result.isValid).toBe(false)
     })
 
     it('should require chapters array', () => {
       const invalidData = { ...validSeriesDetails }
-      delete invalidData.chapters
-      
+      delete (invalidData as any).chapters
+
       const result = validator.validateSeriesDetails(invalidData)
       expect(result.isValid).toBe(false)
     })
@@ -255,7 +255,7 @@ describe('ContentValidator', () => {
         ...validPageData,
         pageNumber: 0
       }
-      
+
       const result = validator.validatePageData(invalidData)
       expect(result.isValid).toBe(false)
     })
@@ -265,7 +265,7 @@ describe('ContentValidator', () => {
         pageNumber: 1,
         imageUrl: 'https://manhwaz.com/images/page1.jpg'
       }
-      
+
       const result = validator.validatePageData(dataWithoutDimensions)
       expect(result.isValid).toBe(true)
     })
@@ -293,7 +293,7 @@ describe('ContentValidator', () => {
           chapterUrl: 'https://manhwaz.com/chapter/2'
         }
       ]
-      
+
       const result = validator.validateLatestReleases(validReleases)
       expect(result.isValid).toBe(true)
     })
@@ -314,7 +314,7 @@ describe('ContentValidator', () => {
           id: 'release-2'
         }
       ]
-      
+
       const result = validator.validateLatestReleases(invalidReleases)
       expect(result.isValid).toBe(false)
       expect(result.errors.some(error => error.includes('Item 1'))).toBe(true)
@@ -360,7 +360,7 @@ describe('ContentValidator', () => {
           field2: 'value2',
           field3: 'value3'
         }
-        
+
         const result = validator.validateCompleteness(data, ['field1', 'field2'])
         expect(result.isValid).toBe(true)
       })
@@ -369,7 +369,7 @@ describe('ContentValidator', () => {
         const data = {
           field1: 'value1'
         }
-        
+
         const result = validator.validateCompleteness(data, ['field1', 'field2'])
         expect(result.isValid).toBe(false)
         expect(result.errors.some(error => error.includes('field2'))).toBe(true)
@@ -381,7 +381,7 @@ describe('ContentValidator', () => {
           field2: null,
           field3: undefined
         }
-        
+
         const result = validator.validateCompleteness(data, ['field1', 'field2', 'field3'])
         expect(result.isValid).toBe(false)
         expect(result.errors).toHaveLength(2)
@@ -393,7 +393,7 @@ describe('ContentValidator', () => {
           field2: '',
           field3: '   '
         }
-        
+
         const result = validator.validateCompleteness(data, ['field1', 'field2', 'field3'])
         expect(result.isValid).toBe(true)
         expect(result.warnings).toHaveLength(2)
@@ -413,11 +413,11 @@ describe('ContentValidator', () => {
         chapterUrl: 'https://manhwaz.com/chapter',
         extraField: 'should be stripped'
       }
-      
+
       const result = validator.validateLatestRelease(dataWithExtra, {
         stripUnknown: true
       })
-      
+
       expect(result.isValid).toBe(true)
     })
 
@@ -432,12 +432,12 @@ describe('ContentValidator', () => {
         chapterUrl: 'https://manhwaz.com/chapter',
         extraField: 'should be allowed'
       }
-      
+
       const result = validator.validateLatestRelease(dataWithExtra, {
         allowUnknown: true,
         stripUnknown: false
       })
-      
+
       expect(result.isValid).toBe(true)
     })
   })

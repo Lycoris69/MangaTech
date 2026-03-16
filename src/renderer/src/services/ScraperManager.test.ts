@@ -4,7 +4,7 @@ import { ScrapingError } from './WebScrapingService'
 // Mock the ManhwazScraper
 const mockScraperInstances: any[] = []
 
-jest.mock('./ManhwazScraper', () => ({
+jest.mock('./scraper/ManhwazScraper', () => ({
   ManhwazScraper: jest.fn().mockImplementation(() => {
     const mockInstance = {
       searchSeries: jest.fn().mockResolvedValue([
@@ -57,7 +57,7 @@ jest.mock('./ManhwazScraper', () => ({
       validateSource: jest.fn().mockResolvedValue(true),
       cleanup: jest.fn().mockResolvedValue(undefined)
     }
-    
+
     mockScraperInstances.push(mockInstance)
     return mockInstance
   })
@@ -70,7 +70,7 @@ describe('ScraperManager', () => {
     // Clear mock instances
     mockScraperInstances.length = 0
     jest.clearAllMocks()
-    
+
     // Use test sources - only ManhwaZ is supported now
     const testSources = [
       {
@@ -111,7 +111,7 @@ describe('ScraperManager', () => {
   describe('Search Functionality', () => {
     it('should search using ManhwaZ source and return results', async () => {
       const results = await scraperManager.searchSeries('test query')
-      
+
       expect(results).toHaveLength(1) // One result from ManhwaZ source
       expect(results[0].id).toBe('ManhwaZ:test-series-1')
     })
@@ -155,7 +155,7 @@ describe('ScraperManager', () => {
       }
 
       const results = await scraperManager.searchSeries('one piece')
-      
+
       expect(results).toHaveLength(1)
       expect(results[0].id).toBe('ManhwaZ:series-1')
     })
@@ -164,7 +164,7 @@ describe('ScraperManager', () => {
   describe('Series Details', () => {
     it('should get series details from ManhwaZ source', async () => {
       const series = await scraperManager.getSeriesDetails('ManhwaZ:test-series-1')
-      
+
       expect(series).toMatchObject({
         id: 'test-series-1',
         title: 'Test Series 1',
@@ -179,7 +179,7 @@ describe('ScraperManager', () => {
 
     it('should handle series ID without source prefix', async () => {
       const series = await scraperManager.getSeriesDetails('test-series-1')
-      
+
       // Should use ManhwaZ as the available source
       expect(series).toMatchObject({
         id: 'test-series-1',
@@ -191,7 +191,7 @@ describe('ScraperManager', () => {
   describe('Trending Content', () => {
     it('should get trending content from primary source', async () => {
       const trending = await scraperManager.getTrendingContent()
-      
+
       expect(trending).toHaveProperty('hotSeries')
       expect(trending).toHaveProperty('latestReleases')
       expect(trending).toHaveProperty('mostViewed')
@@ -213,7 +213,7 @@ describe('ScraperManager', () => {
   describe('Chapter Pages', () => {
     it('should get chapter pages from ManhwaZ source', async () => {
       const pages = await scraperManager.getChapterPages('ManhwaZ:chapter-1')
-      
+
       expect(pages).toHaveLength(2)
       expect(pages[0]).toMatchObject({
         pageNumber: 1,
@@ -242,7 +242,7 @@ describe('ScraperManager', () => {
 
     it('should remove source', async () => {
       scraperManager.removeSource('ManhwaZ')
-      
+
       const sources = scraperManager.getAvailableSources()
       expect(sources).not.toContain('ManhwaZ')
       expect(sources).toHaveLength(0)
@@ -257,7 +257,7 @@ describe('ScraperManager', () => {
       }
 
       scraperManager.addSource(disabledSource)
-      
+
       const sources = scraperManager.getAvailableSources()
       expect(sources).not.toContain('DisabledNew')
     })
@@ -278,7 +278,7 @@ describe('ScraperManager', () => {
   describe('Cleanup', () => {
     it('should cleanup all scrapers', async () => {
       await scraperManager.cleanup()
-      
+
       // Verify cleanup was called on mock scrapers
       mockScraperInstances.forEach(instance => {
         expect(instance.cleanup).toHaveBeenCalled()

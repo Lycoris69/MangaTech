@@ -3,7 +3,7 @@
  * Tests manhwaz.com search functionality
  */
 
-import { AutocompleteResult } from './SearchInterface'
+import { AutocompleteResult } from './scraper/SearchInterface'
 
 describe('SearchInterface', () => {
   // Test the public interface without complex mocking
@@ -42,7 +42,7 @@ describe('SearchInterface', () => {
         load: jest.fn()
       }))
 
-      const module = await import('./SearchInterface')
+      const module = await import('./scraper/SearchInterface')
       SearchInterface = module.SearchInterface
     })
 
@@ -51,9 +51,9 @@ describe('SearchInterface', () => {
       const mockURLManager = { buildSearchUrl: jest.fn(), getBaseUrl: jest.fn(), resolveUrl: jest.fn(), validateUrl: jest.fn(), extractSeriesId: jest.fn() }
       const mockRateLimiter = { acquireToken: jest.fn() }
       const mockContentValidator = { validateSearchResult: jest.fn() }
-      
+
       const searchInterface = new SearchInterface(mockURLManager as any, mockRateLimiter as any, mockContentValidator as any)
-      
+
       const message = searchInterface.generateEmptyResultsMessage('nonexistent', [])
       expect(message).toContain('No results found for "nonexistent"')
       expect(message).toContain('Try using different keywords')
@@ -63,9 +63,9 @@ describe('SearchInterface', () => {
       const mockURLManager = { buildSearchUrl: jest.fn(), getBaseUrl: jest.fn(), resolveUrl: jest.fn(), validateUrl: jest.fn(), extractSeriesId: jest.fn() }
       const mockRateLimiter = { acquireToken: jest.fn() }
       const mockContentValidator = { validateSearchResult: jest.fn() }
-      
+
       const searchInterface = new SearchInterface(mockURLManager as any, mockRateLimiter as any, mockContentValidator as any)
-      
+
       const suggestions: AutocompleteResult[] = [
         { suggestion: 'naruto', type: 'series' },
         { suggestion: 'one piece', type: 'series' },
@@ -94,7 +94,7 @@ describe('SearchInterface', () => {
           status: 'ongoing' as const
         }
       }
-      
+
       expect(options.limit).toBe(10)
       expect(options.sortBy).toBe('title')
       expect(options.filterBy?.genres).toContain('action')

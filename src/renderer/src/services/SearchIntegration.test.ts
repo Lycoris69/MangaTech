@@ -51,7 +51,7 @@ describe('Search Integration', () => {
           attr: jest.fn(() => ''),
           find: jest.fn(() => mockElement)
         }
-        
+
         const mockCheerio = Object.assign(jest.fn(() => mockElement), mockElement)
         return mockCheerio
       })
@@ -62,15 +62,15 @@ describe('Search Integration', () => {
 
   it('should integrate search functionality with ManhwazScraper', async () => {
     // Dynamic import after mocking
-    const { ManhwazScraper } = await import('./ManhwazScraper')
-    
+    const { ManhwazScraper } = await import('./scraper/ManhwazScraper')
+
     const scraper = new ManhwazScraper()
-    
+
     // Test that search methods exist and are callable
     expect(typeof scraper.searchSeries).toBe('function')
     expect(typeof scraper.searchSeriesWithDetails).toBe('function')
     expect(typeof scraper.getAutocompleteSuggestions).toBe('function')
-    
+
     // Test that SearchInterface is accessible
     const searchInterface = scraper.getSearchInterface()
     expect(searchInterface).toBeDefined()
@@ -80,14 +80,14 @@ describe('Search Integration', () => {
   })
 
   it('should handle empty search queries appropriately', async () => {
-    const { ManhwazScraper } = await import('./ManhwazScraper')
-    
+    const { ManhwazScraper } = await import('./scraper/ManhwazScraper')
+
     const scraper = new ManhwazScraper()
-    
+
     // Test empty query validation
     await expect(scraper.searchSeries('')).rejects.toThrow('Search query cannot be empty')
     await expect(scraper.searchSeriesWithDetails('   ')).rejects.toThrow('Search query cannot be empty')
-    
+
     // Test autocomplete with short queries
     const suggestions = await scraper.getAutocompleteSuggestions('')
     expect(Array.isArray(suggestions)).toBe(true)
@@ -95,8 +95,8 @@ describe('Search Integration', () => {
   })
 
   it('should provide search interface components', async () => {
-    const { SearchInterface } = await import('./SearchInterface')
-    
+    const { SearchInterface } = await import('./scraper/SearchInterface')
+
     // Test that SearchInterface can be instantiated with mocked dependencies
     const mockURLManager = {
       buildSearchUrl: jest.fn(() => 'https://manhwaz.com/search?s=test'),
@@ -105,21 +105,21 @@ describe('Search Integration', () => {
       validateUrl: jest.fn(() => true),
       extractSeriesId: jest.fn(() => 'test-id')
     }
-    
+
     const mockRateLimiter = {
       acquireToken: jest.fn().mockResolvedValue(true)
     }
-    
+
     const mockContentValidator = {
       validateSearchResult: jest.fn(() => ({ isValid: true, errors: [], warnings: [] }))
     }
-    
+
     const searchInterface = new SearchInterface(
       mockURLManager as any,
       mockRateLimiter as any,
       mockContentValidator as any
     )
-    
+
     // Test empty results message generation
     const message = searchInterface.generateEmptyResultsMessage('test', [])
     expect(message).toContain('No results found for "test"')

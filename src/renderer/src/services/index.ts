@@ -1,6 +1,6 @@
 // Export all services for easy importing
 export { StorageService } from './StorageService'
-// export { FileSystemService } from './FileSystemService'
+export { FileSystemService } from './FileSystemService'
 export {
   BaseScraper,
   ScrapingError,
@@ -44,7 +44,6 @@ export {
   type DownloadOptions,
   type DownloadManagerEvents
 } from './DownloadManager'
-/*
 export {
   ContentIntegrityService,
   type DuplicateDetectionResult,
@@ -54,27 +53,26 @@ export {
   type ResolutionResult,
   type ContentIntegrityEvents
 } from './ContentIntegrityService'
-*/
 export { OnlineReadingService } from './OnlineReadingService'
 export { ReadingStateService } from './ReadingStateService'
 export { ModeManager, modeManager } from './ModeManager'
 export type { AppMode, ModeContext, ModeTransition } from './ModeManager'
 
 // Error handling and monitoring services
-export { ErrorHandler, errorHandler } from './ErrorHandler'
-export type { ErrorContext, FailurePattern } from './ErrorHandler'
-export { OperationLogger, operationLogger } from './OperationLogger'
-export type { OperationMetrics, PerformanceMetrics } from './OperationLogger'
-export { MetricsCollector, metricsCollector } from './MetricsCollector'
-export type { ScrapingMetrics, AggregatedMetrics } from './MetricsCollector'
-export { ScrapingMonitor, scrapingMonitor } from './ScrapingMonitor'
-export type { MonitoredOperation, MonitoringResult } from './ScrapingMonitor'
+export { ErrorHandler, errorHandler } from './scraper/ErrorHandler'
+export type { ErrorContext, FailurePattern } from './scraper/ErrorHandler'
+export { OperationLogger, operationLogger } from './scraper/OperationLogger'
+export type { OperationMetrics, PerformanceMetrics } from './scraper/OperationLogger'
+export { MetricsCollector, metricsCollector } from './scraper/MetricsCollector'
+export type { ScrapingMetrics, AggregatedMetrics } from './scraper/MetricsCollector'
+export { ScrapingMonitor, scrapingMonitor } from './scraper/ScrapingMonitor'
+export type { MonitoredOperation, MonitoringResult } from './scraper/ScrapingMonitor'
 
 // Caching and performance optimization services
-export { ContentCacheService } from './ContentCacheService'
-export type { CacheConfig, CacheStats } from './ContentCacheService'
-export { PerformanceOptimizer } from './PerformanceOptimizer'
-export type { PerformanceConfig } from './PerformanceOptimizer'
+export { ContentCacheService } from './scraper/ContentCacheService'
+export type { CacheConfig, CacheStats } from './scraper/ContentCacheService'
+export { PerformanceOptimizer } from './scraper/PerformanceOptimizer'
+export type { PerformanceConfig } from './scraper/PerformanceOptimizer'
 
 // Service interfaces for dependency injection and testing
 export interface IStorageService {

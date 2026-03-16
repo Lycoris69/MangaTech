@@ -1,4 +1,4 @@
-import { OperationLogger } from './OperationLogger'
+import { OperationLogger } from './scraper/OperationLogger'
 
 // Mock winston to avoid file system operations in tests
 jest.mock('winston', () => ({
